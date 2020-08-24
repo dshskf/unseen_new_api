@@ -11,7 +11,7 @@ const fs = require('fs')
 
 exports.add_product = async (req, res, next) => {
     let images = []
-    
+
     req.files.map(data => {
         images.push(data.path)
     })
@@ -225,7 +225,7 @@ exports.request_to_seller = async (req, res, next) => {
     }
 
     req.body.offers_price = parseFloat(req.body.offers_price)
-    
+
     const request = await request_model.create(req.body)
     if (!request) {
         return res.status(200).json({
@@ -240,32 +240,44 @@ exports.request_to_seller = async (req, res, next) => {
 }
 
 exports.get_user_friends = async (req, res, next) => {
-    const friend_data = []
-
-    // let friend = await sequelize.query(`
-    //     SELECT DISTINCT ON (receiver_id) * FROM chats
-    //     where sender_id=${req.body.id}
-    //     ORDER BY receiver_id
-    // `)
+    let last_message_query = ''
 
     let friend = await sequelize.query(`
-    SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
-    where sender_id<>${req.body.id} and receiver_id=${req.body.id}
-    ORDER BY sender_id
-`)
+        select u.* from users u,(
+            SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
+            where sender_id<>${req.body.id} and receiver_id=${req.body.id}
+            ORDER BY sender_id
+        ) as chats
+        where chats.sender_id=u.id   
+    `)
     friend = friend[0]
 
     for (let i = 0; i < friend.length; i++) {
-        const user = await user_model.findOne({
-            where: {
-                id: friend[i].sender_id
-            }
-        })
-        friend_data.push(user)
+        if (i === friend.length - 1) {
+            last_message_query += `(
+                SELECT * FROM chats
+                where sender_id=${friend[i].id} and receiver_id=${req.body.id} or 
+                sender_id=${req.body.id} and receiver_id=${friend[i].id}                
+                ORDER BY "createdAt" desc
+                limit 1
+            )`
+        } else {
+            last_message_query += `(
+                SELECT * FROM chats
+                where sender_id=${friend[i].id} and receiver_id=${req.body.id} or 
+                sender_id=${req.body.id} and receiver_id=${friend[i].id}                
+                ORDER BY "createdAt" desc
+                limit 1
+            ) UNION ALL `
+        }
     }
 
+    let last_message = await sequelize.query(last_message_query)
+    last_message = last_message[0]
+
     return res.status(200).json({
-        data: friend_data,
+        data: friend,
+        last_message: last_message,
         err: null
     })
 }
