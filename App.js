@@ -81,13 +81,13 @@ DbCon.sync()
 
 io.origins('*:*')
 
-io.on('connection', (socket) => {    
+io.on('connection', (socket) => {
 
-    socket.on('join_room', data => {        
+    socket.on('join_room', data => {
         socket.join(data.room_id)
     })
 
-    socket.on('msg', data => {        
+    socket.on('msg', data => {
         socket.broadcast.to(parseInt(data.receiver_id)).emit('msg_response', data)
     })
 

@@ -12,9 +12,11 @@ const fs = require('fs')
 exports.add_product = async (req, res, next) => {
     let images = []
 
-    req.files.map(data => {
+    req.files.map(data => {        
         images.push(data.path)
     })
+
+    console.log(images)
 
     const now = new Date(Date.now())
     const start = new Date(req.body.start_date)
@@ -118,7 +120,7 @@ exports.edit_product = async (req, res, next) => {
             isDel = req.body.img_del.map((del_data, index) => {
                 if (data === del_data) {
                     if (isDel === false) {
-                        fs.unlink('images/' + del_data.split('images/')[1], (err) => console.log(err))
+                        fs.unlink('images/' + del_data.split('images/')[1], (err) => err)
                         return true
                     }
                 }

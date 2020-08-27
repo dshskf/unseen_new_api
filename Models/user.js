@@ -28,13 +28,26 @@ const user = db.define('users', {
         type: sequelize.STRING,
         allowNull: false
     },
-    location: {
-        type: sequelize.STRING,
+    lat: {
+        type: sequelize.DECIMAL,
+        // allowNull: false
+    },
+    lng: {
+        type: sequelize.DECIMAL,
         // allowNull: false
     },
     image: {
-        type: sequelize.BLOB,
+        type: sequelize.STRING,
         // allowNull: false
+    },
+    country_id: {
+        type: sequelize.INTEGER
+    },
+    state_id: {
+        type: sequelize.INTEGER
+    },
+    city_id: {
+        type: sequelize.INTEGER
     },
     repass_token: {
         type: sequelize.STRING,

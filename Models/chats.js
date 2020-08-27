@@ -19,10 +19,10 @@ const chats = db.define('chat', {
     content: {
         type: sequelize.TEXT,
         allowNull: false
-    },
-    notification: {
-        type: sequelize.INTEGER        
-    },
+    },    
+    ads_id: {
+        type: sequelize.INTEGER
+    }
 
 })
 

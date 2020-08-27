@@ -5,6 +5,8 @@ const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
 const randtoken = require('rand-token');
 const user_model = require('../Models/user')
+const sequelize = require('../config')
+const fs = require('fs')
 
 /* -------------------------------------------------------------------------- */
 /*                        Oauth2.0 Email Initialization                       */
@@ -65,7 +67,7 @@ exports.PostRegister = async (req, res, next) => {
     }
 
     req.body.password = await bcrypt.hash(req.body.password, 10)
-    req.body.account_types = 'user'
+
     const insertModel = await user_model.create(req.body)
 
     return res.status(200).json({
@@ -232,7 +234,6 @@ exports.get_edit = async (req, res, next) => {
 
 exports.post_edit = async (req, res, next) => {
     const userId = req.userId
-    console.log(req.body)
     const user = await user_model.findOne({
         where: {
             id: userId
@@ -245,9 +246,23 @@ exports.post_edit = async (req, res, next) => {
         })
     }
 
+    // Delete last user image
+    if (req.body.images_to_delete) {
+        fs.unlink('images/' + req.body.images_to_delete.split('images/')[1], (err) => err)
+    }
+
     user.username = req.body.username
     user.email = req.body.email
     user.phone = req.body.phone
+    user.country_id = req.body.country
+    user.state_id = req.body.state
+    user.city_id = req.body.city
+    user.lat = req.body.lat
+    user.lng = req.body.lng
+
+    if (req.files[0]) {
+        user.image = req.files[0].path
+    }
 
     const update_user = user.save()
 
@@ -286,6 +301,55 @@ exports.check_token = async (req, res, next) => {
     return res.status(200).json({
         status: 200,
         user: user,
+        err: null
+    })
+}
+
+
+exports.getLocationData = async (req, res, next) => {
+    let query
+
+    if (req.body.action === "fetch_data") {
+        query = `
+            select co.id as country_id, co.name as country_name,s.id as state_id,
+            s.name as state_name,cy.id as city_id,cy.name as city_name,cy.latitude as lat,cy.longitude as lng
+            from countries co
+            inner join states s on s.country_id = co.id
+            inner join cities cy on cy.state_id =s.id
+            where cy.id=${req.body.city_id};
+        `
+    }
+    else if (req.body.action === "countries") {
+        query = `select * from countries`
+    } else if (req.body.action === "states") {
+        query = `select * from states where country_id = ${req.body.country_id}`
+    } else {
+        query = `select * from cities where state_id = ${req.body.state_id}`
+    }
+
+    let location = await sequelize.query(query)
+
+    return res.status(200).json({
+        data: location[0],
+        err: null
+    })
+}
+
+exports.get_track_user = async (req, res, next) => {
+    let user_data = await sequelize.query(`
+        select u.* from users u 
+        inner join requests r on u.id=r.receiver_id or u.id=r.sender_id
+        where r.id=${req.body.reqId}
+    `)
+
+    if (!user_data) {
+        return res.status(200).json({
+            err: `Can't find another user!`
+        })
+    }
+
+    return res.status(200).json({
+        data: user_data[0],
         err: null
     })
 }

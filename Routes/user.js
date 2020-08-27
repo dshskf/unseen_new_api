@@ -32,6 +32,10 @@ router.post('/reset', authModel.SendEmailReset)
 router.get('/edit', jwt_validation, authModel.get_edit)
 router.post('/edit', jwt_validation, authModel.post_edit)
 
+router.post('/track/user', jwt_validation, authModel.get_track_user)
+router.post('/location', authModel.getLocationData)
+
+
 router.get('/check-token', jwt_validation, authModel.check_token)
 
 module.exports = router
