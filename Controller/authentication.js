@@ -338,7 +338,7 @@ exports.getLocationData = async (req, res, next) => {
 exports.get_track_user = async (req, res, next) => {
     let user_data = await sequelize.query(`
         select u.* from users u 
-        inner join requests r on u.id=r.receiver_id or u.id=r.sender_id
+        inner join requests r on u.id=r.sender_id or u.id=r.receiver_id
         where r.id=${req.body.reqId}
     `)
 
@@ -352,4 +352,29 @@ exports.get_track_user = async (req, res, next) => {
         data: user_data[0],
         err: null
     })
+}
+
+exports.update_track_user_location = async (req, res, next) => {
+    let user = await user_model.findOne({
+        where: {
+            id: req.body.userId
+        }
+    })
+
+    if (!user) {
+        return res.status(200).json({
+            err: `Can't find user!`
+        })
+    }
+
+    user.lat = req.body.lat
+    user.lng = req.body.lng
+
+    await user.save()
+
+    return res.status(200).json({
+        status: 200,
+        err: null
+    })
+
 }

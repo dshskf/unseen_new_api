@@ -33,6 +33,8 @@ router.get('/edit', jwt_validation, authModel.get_edit)
 router.post('/edit', jwt_validation, authModel.post_edit)
 
 router.post('/track/user', jwt_validation, authModel.get_track_user)
+router.post('/track/update', jwt_validation, authModel.update_track_user_location)
+
 router.post('/location', authModel.getLocationData)
 
 
