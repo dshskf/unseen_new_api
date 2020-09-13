@@ -67,8 +67,10 @@ exports.PostRegister = async (req, res, next) => {
     }
 
     req.body.password = await bcrypt.hash(req.body.password, 10)
+    req.body.account_types = 'user'
+    req.body.phone = '08211140xxxx'
 
-    const insertModel = await user_model.create(req.body)
+    await user_model.create(req.body)
 
     return res.status(200).json({
         status: 200,
@@ -109,7 +111,7 @@ exports.PostLogin = async (req, res, next) => {
         userId: user.id
     },
         'SUp3rs3Cr3TR0kEn',
-        { expiresIn: '1d' })
+        { expiresIn: '7d' })
 
 
     return res.status(200).json({
@@ -172,8 +174,6 @@ exports.SendEmailReset = async (req, res, next) => {
             })
         }
 
-        console.log("Email has been sent...");
-
         return res.status(200).json({
             status: 200,
             err: null
@@ -204,10 +204,32 @@ exports.CheckResetEmailLink = async (req, res, next) => {
         })
     } else {
         return res.status(200).json({
-            status: 200,
+            data: user,
             err: null
         })
     }
+}
+
+exports.updateUserPassword = async (req, res, next) => {
+    const user = await user_model.findOne({
+        where: {
+            id: req.body.userId
+        }
+    })
+
+    if (!user) {
+        return res.status(200).json({
+            err: `Can't find user!`
+        })
+    }
+
+    user.password = await bcrypt.hash(req.body.password, 10)
+    await user.save()
+
+    return res.status(200).json({
+        status: 200,
+        err: null
+    })
 }
 
 exports.get_edit = async (req, res, next) => {
