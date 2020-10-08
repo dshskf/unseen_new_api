@@ -16,6 +16,7 @@
     "csurf": "^1.11.0",
     "express": "^4.17.1",
     "express-validator": "^6.6.0",
+    "faker": "^5.1.0",
     "googleapis": "^54.0.0",
     "jsonwebtoken": "^8.5.1",
     "multer": "^1.4.2",
@@ -25,6 +26,7 @@
     "rand-token": "^1.0.1",
     "sequelize": "^6.3.0",
     "socket.io": "^2.3.0",
+    "sort-objects-array": "^1.7.1",
     "uuid4": "^2.0.2"
   },
   "devDependencies": {

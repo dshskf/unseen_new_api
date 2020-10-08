@@ -1,20 +1,37 @@
 const express = require('express')
 const bp = require('body-parser')
 const app = express()
-const DbCon = require('./config')
+const DbCon = require('./config/sequelize')
 const multer = require('multer')
 const uuid4 = require('uuid4')
 const path = require('path')
 const http = require('http')
 
-const server = http.createServer(app)
+const fillDB = require('./generate-data')
 
-const UserRoutes = require('./Routes/user')
-const ProductRoutes = require('./Routes/product')
+const userRoutes = require('./Routes/user')
+const agencyRoutes = require('./Routes/agency')
+const guidesRoutes = require('./Routes/guides')
+const authenticationRoutes = require('./Routes/authentication')
+const toursRoutes = require('./Routes/tours')
+const managementRoutes = require('./Routes/management')
+const featuresRoutes = require('./Routes/features')
 
 const userModel = require('./Models/user')
-const productModel = require('./Models/product')
+const agencyModel = require('./Models/agency')
+const guidesModel = require('./Models/guides')
+const toursAgency = require('./Models/tours-agency')
+const toursGuides = require('./Models/tours-guides')
+const requestModel = require('./Models/request')
+const commentModel = require('./Models/comment')
+const boookingModel = require('./Models/booking')
 const chatModel = require('./Models/chats')
+const destinationModel = require('./Models/destination')
+
+
+// Start Code
+
+const server = http.createServer(app)
 
 const io = require('socket.io')(server, {
     handlePreflightRequest: (req, res) => {
@@ -61,13 +78,27 @@ app.use((req, res, next) => { //To allow cors(different domain)
 })
 
 
-app.use('/user', UserRoutes)
-app.use('/product', ProductRoutes)
+app.use('/user', userRoutes)
+app.use('/guides', guidesRoutes)
+app.use('/agency', agencyRoutes)
+app.use('/auth', authenticationRoutes)
+app.use('/tours', toursRoutes)
+app.use('/management', managementRoutes)
+app.use('/features', featuresRoutes)
+app.use('/fill', fillDB)
 
-userModel.hasMany(productModel)
-productModel.belongsTo(userModel, {
+// DATABASE RELATIONS
+
+guidesModel.hasMany(toursGuides)
+toursGuides.belongsTo(guidesModel, {
     onDelete: 'CASCADE'
 })
+
+agencyModel.hasMany(toursAgency)
+toursAgency.belongsTo(agencyModel, {
+    onDelete: 'CASCADE'
+})
+
 
 DbCon.sync()
     .then(() => {

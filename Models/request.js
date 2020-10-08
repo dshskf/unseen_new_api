@@ -1,5 +1,5 @@
 const sequelize = require('sequelize')
-const db = require('../config')
+const db = require('../config/sequelize')
 
 const request = db.define('request', {
     id: {
@@ -8,7 +8,7 @@ const request = db.define('request', {
         primaryKey: true,
         autoIncrement: true
     },
-    product_id: {
+    tours_id: {
         type: sequelize.INTEGER,
         allowNull: false
     },
@@ -28,20 +28,43 @@ const request = db.define('request', {
         type: sequelize.FLOAT,
         allowNull: false
     },
-    isApprove: {
+    country_id: {
+        type: sequelize.INTEGER
+    },
+    state_id: {
+        type: sequelize.INTEGER
+    },
+    city_id: {
+        type: sequelize.INTEGER
+    },
+    start_date: {
+        type: sequelize.DATE,
+        allowNull: false
+    },
+    end_date: {
+        type: sequelize.DATE,
+        allowNull: false
+    },
+    is_approve: {
         type: sequelize.INTEGER,
         allowNull: false
     },
-    isPaying: {
+    is_paying: {
         type: sequelize.INTEGER,
         allowNull: false
     },
-    isActive: {
+    is_active: {
         type: sequelize.INTEGER,
+        allowNull: false
+    },
+    receiver_type: {
+        type: sequelize.CHAR(1),
+        allowNull: false
+    },
+    sender_type: {
+        type: sequelize.CHAR(1),
         allowNull: false
     }
-
-
 })
 
 module.exports = request

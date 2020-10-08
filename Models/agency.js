@@ -1,7 +1,8 @@
 const sequelize = require('sequelize')
 const db = require('../config/sequelize')
+const { Sequelize } = require('sequelize')
 
-const user = db.define('users', {
+const agency = db.define('agency', {
     id: {
         type: sequelize.INTEGER,
         allowNull: false,
@@ -15,13 +16,19 @@ const user = db.define('users', {
     email: {
         type: sequelize.STRING,
         allowNull: false
-    },    
+    },
     password: {
         type: sequelize.STRING,
         allowNull: false
     },
     phone: {
-        type: sequelize.TEXT,        
+        type: sequelize.TEXT,
+    },
+    rating: {
+        type: sequelize.DECIMAL
+    },
+    total_tours: {
+        type: sequelize.INTEGER,
     },
     lat: {
         type: sequelize.DECIMAL,
@@ -41,6 +48,12 @@ const user = db.define('users', {
     city_id: {
         type: sequelize.INTEGER
     },
+    isActive: {
+        type: sequelize.BOOLEAN
+    },
+    certificated: {
+        type: sequelize.BOOLEAN
+    },
     repass_token: {
         type: sequelize.STRING,
     },
@@ -49,4 +62,4 @@ const user = db.define('users', {
     }
 })
 
-module.exports = user
+module.exports = agency

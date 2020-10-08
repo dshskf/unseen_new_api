@@ -1,5 +1,5 @@
 const sequelize = require('sequelize')
-const db = require('../config')
+const db = require('../config/sequelize')
 
 const comment = db.define('comments', {
     id: {
@@ -12,7 +12,7 @@ const comment = db.define('comments', {
         type: sequelize.INTEGER,
         allowNull: false
     },
-    product_id: {
+    tours_id: {
         type: sequelize.INTEGER,
         allowNull: false
     },

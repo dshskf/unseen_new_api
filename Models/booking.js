@@ -1,12 +1,16 @@
 const sequelize = require('sequelize')
 const db = require('../config/sequelize')
 
-const chats = db.define('chat', {
+const bookings = db.define('bookings', {
     id: {
         type: sequelize.INTEGER,
         allowNull: false,
         primaryKey: true,
         autoIncrement: true
+    },
+    tours_id: {
+        type: sequelize.INTEGER,
+        allowNull: false
     },
     sender_id: {
         type: sequelize.INTEGER,
@@ -16,14 +20,16 @@ const chats = db.define('chat', {
         type: sequelize.INTEGER,
         allowNull: false
     },
-    content: {
-        type: sequelize.TEXT,
+    is_payed: {
+        type: sequelize.BOOLEAN
+    },
+    is_active: {
+        type: sequelize.BOOLEAN
+    },
+    receiver_type: {
+        type: sequelize.CHAR(1),
         allowNull: false
-    },    
-    tours_id: {
-        type: sequelize.INTEGER
     }
-
 })
 
-module.exports = chats
+module.exports = bookings

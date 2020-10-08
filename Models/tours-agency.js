@@ -1,7 +1,7 @@
 const sequelize = require('sequelize')
 const db = require('../config/sequelize')
 
-const product = db.define('products', {
+const toursAgency = db.define('tours_agency_ads', {
     id: {
         type: sequelize.INTEGER,
         allowNull: false,
@@ -16,12 +16,11 @@ const product = db.define('products', {
         type: sequelize.DOUBLE,
         allowNull: false
     },
-    destination: {
-        type: sequelize.STRING,
-        allowNull: false
-    },
     rating: {
         type: sequelize.INTEGER
+    },
+    total_tours: {
+        type: sequelize.INTEGER,
     },
     description: {
         type: sequelize.TEXT,
@@ -35,18 +34,19 @@ const product = db.define('products', {
         type: sequelize.DATE,
         allowNull: false
     },
-    status: {
-        type: sequelize.STRING,
-        allowNull: false
+    isActive: {
+        type: sequelize.BOOLEAN,
     },
-    // type: {
-    //     type: sequelize.STRING
-    // },
     image: {
         type: sequelize.ARRAY(sequelize.STRING),
         allowNull: false
-    }
-
+    },
+    quota_left: {
+        type: sequelize.INTEGER
+    },
+    quota: {
+        type: sequelize.INTEGER
+    },    
 })
 
-module.exports = product
+module.exports = toursAgency
