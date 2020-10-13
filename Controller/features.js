@@ -47,15 +47,35 @@ exports.updateUserLocation = async (req, res, next) => {
 
 exports.chatsPerson = async (req, res, next) => {
     let last_message_query = ''
+    let receiver_list, receiver_code
 
-    let friend = await sequelize.query(`
-        select u.* from users u,(
+    if (req.body.type === 'U') {
+        receiver_list = ['agencies', 'guides']
+        receiver_code = ['A', 'G']
+    } else if (req.body.type === 'A') {
+        receiver_list = ['users', 'guides']
+        receiver_code = ['U', 'G']
+    } else if (req.body.type === 'G') {
+        receiver_list = ['users', 'agencies']
+        receiver_code = ['U', 'A']
+    }
+    
+    let friend = await sequelize.query(`        
+        (select x.id,x.username,x.image, '${receiver_code[0]}' as type from ${receiver_list[0]} x,(
             SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
-            where sender_id<>${req.body.id} and receiver_id=${req.body.id}
+            where receiver_id=${req.body.id} and sender_type<>'${req.body.type}' and sender_type<>'${receiver_code[1]}'
             ORDER BY sender_id
         ) as chats
-        where chats.sender_id=u.id   
+        where chats.sender_id=x.id)
+	    union all
+		(select y.id,y.username,y.image, '${receiver_code[1]}' as type from ${receiver_list[1]} y,(
+            SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
+            where receiver_id=${req.body.id} and sender_type<>'${req.body.type}' and sender_type<>'${receiver_code[0]}'
+            ORDER BY sender_id
+        ) as chats
+        where chats.sender_id=y.id) 
     `)
+
     friend = friend[0]
 
     for (let i = 0; i < friend.length; i++) {
@@ -88,13 +108,13 @@ exports.chatsPerson = async (req, res, next) => {
     })
 }
 
-exports.chatsData = async (req, res, next) => {
+exports.chatsData = async (req, res, next) => {    
     const msg = await sequelize.query(`
     select * from chats 
     where 
-        (sender_id=${req.body.sender_id} AND receiver_id= ${req.body.receiver_id})
+        (sender_id=${req.body.sender_id} AND receiver_id= ${req.body.receiver_id}) and (sender_type='${req.body.receiver_type}' or sender_type='${req.body.sender_type}')
     OR
-        (sender_id=${req.body.receiver_id} AND receiver_id= ${req.body.sender_id});
+        (sender_id=${req.body.receiver_id} AND receiver_id= ${req.body.sender_id}) and (sender_type='${req.body.receiver_type}' or sender_type='${req.body.sender_type}');
     `)
 
     for (let i = 0; i < msg[0].length; i++) {
@@ -127,8 +147,8 @@ exports.chatsSend = async (req, res, next) => {
 
 
 exports.getLocationData = async (req, res, next) => {
-    let query    
-    if (req.body.action === "fetch_data") {        
+    let query
+    if (req.body.action === "fetch_data") {
         query = `
             select co.id as country_id, co.name as country_name,s.id as state_id,
             s.name as state_name,cy.id as city_id,cy.name as city_name,cy.lat,cy.long

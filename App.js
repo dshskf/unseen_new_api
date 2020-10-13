@@ -117,6 +117,7 @@ io.on('connection', (socket) => {
     })
 
     socket.on('msg', data => {
+        console.log("hello")
         socket.broadcast.to(parseInt(data.receiver_id)).emit('msg_response', data)
     })
 

@@ -12,6 +12,10 @@ const chats = db.define('chat', {
         type: sequelize.INTEGER,
         allowNull: false
     },
+    sender_type: {
+        type: sequelize.CHAR(1),
+        allowNull: false
+    },
     receiver_id: {
         type: sequelize.INTEGER,
         allowNull: false
@@ -19,11 +23,13 @@ const chats = db.define('chat', {
     content: {
         type: sequelize.TEXT,
         allowNull: false
-    },    
+    },
     tours_id: {
         type: sequelize.INTEGER
+    },
+    tours_type: {
+        type: sequelize.CHAR(1),
     }
-
 })
 
 module.exports = chats

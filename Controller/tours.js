@@ -37,7 +37,7 @@ exports.get_tours_agency = async (req, res, next) => {
         FROM tours_agency_ads t 
         JOIN agencies a on t."agencyId"=a.id
         ORDER BY random()               
-        LIMIT 10
+        
     `)
     tours = tours[0]
 
@@ -402,7 +402,8 @@ exports.booking_tours = async (req, res, next) => {
     const check = await bookingModel.findOne({
         where: {
             sender_id: req.body.sender_id,
-            tours_id: req.body.tours_id
+            tours_id: req.body.tours_id,
+            receiver_type: req.body.receiver_type
         }
     })
 
