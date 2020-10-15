@@ -75,23 +75,25 @@ exports.chatsPerson = async (req, res, next) => {
         ) as chats
         where chats.sender_id=y.id) 
     `)
+    
 
     friend = friend[0]
+    console.log(friend)
 
     for (let i = 0; i < friend.length; i++) {
-        if (i === friend.length - 1) {
+        if (i === friend.length - 1) {           
             last_message_query += `(
                 SELECT * FROM chats
-                where sender_id=${friend[i].id} and receiver_id=${req.body.id} or 
-                sender_id=${req.body.id} and receiver_id=${friend[i].id}                
+                where sender_id=${friend[i].id} and receiver_id=${req.body.id} and sender_type='${friend[i].type}' or 
+                sender_id=${req.body.id} and receiver_id=${friend[i].id} and receiver_type='${friend[i].type}'                 
                 ORDER BY "createdAt" desc
                 limit 1
             )`
         } else {
             last_message_query += `(
                 SELECT * FROM chats
-                where sender_id=${friend[i].id} and receiver_id=${req.body.id} or 
-                sender_id=${req.body.id} and receiver_id=${friend[i].id}                
+                where sender_id=${friend[i].id} and receiver_id=${req.body.id} and sender_type='${friend[i].type}' or 
+                sender_id=${req.body.id} and receiver_id=${friend[i].id} and receiver_type='${friend[i].type}'                 
                 ORDER BY "createdAt" desc
                 limit 1
             ) UNION ALL `
@@ -100,6 +102,7 @@ exports.chatsPerson = async (req, res, next) => {
 
     let last_message = await sequelize.query(last_message_query)
     last_message = last_message[0]
+    console.log(last_message)
 
     return res.status(200).json({
         data: friend,
@@ -112,10 +115,10 @@ exports.chatsData = async (req, res, next) => {
     const msg = await sequelize.query(`
     select * from chats 
     where 
-        (sender_id=${req.body.sender_id} AND receiver_id= ${req.body.receiver_id}) and (sender_type='${req.body.receiver_type}' or sender_type='${req.body.sender_type}')
+        (sender_id=${req.body.sender_id} AND receiver_id= ${req.body.receiver_id}) and (sender_type='${req.body.sender_type}' or receiver_type='${req.body.receiver_type}')
     OR
-        (sender_id=${req.body.receiver_id} AND receiver_id= ${req.body.sender_id}) and (sender_type='${req.body.receiver_type}' or sender_type='${req.body.sender_type}');
-    `)
+        (sender_id=${req.body.receiver_id} AND receiver_id= ${req.body.sender_id}) and (sender_type='${req.body.receiver_type}' or receiver_type='${req.body.sender_type}');
+    `)    
 
     for (let i = 0; i < msg[0].length; i++) {
         if (msg[0][i].notification) {

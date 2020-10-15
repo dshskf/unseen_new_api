@@ -116,8 +116,7 @@ io.on('connection', (socket) => {
         socket.join(data.room_id)
     })
 
-    socket.on('msg', data => {
-        console.log("hello")
+    socket.on('msg', data => {        
         socket.broadcast.to(parseInt(data.receiver_id)).emit('msg_response', data)
     })
 

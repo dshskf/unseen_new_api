@@ -20,6 +20,10 @@ const chats = db.define('chat', {
         type: sequelize.INTEGER,
         allowNull: false
     },
+    receiver_type: {
+        type: sequelize.CHAR(1),
+        allowNull: false
+    },
     content: {
         type: sequelize.TEXT,
         allowNull: false
