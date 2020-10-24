@@ -35,7 +35,7 @@ exports.get_tours_agency = async (req, res, next) => {
     let tours = await sequelize.query(`
         SELECT t.id,t.title,t.cost, t.start_date, t.rating,t.image, a.id as agencyId,a.username
         FROM tours_agency_ads t 
-        JOIN agencies a on t."agencyId"=a.id
+        JOIN agency a on t."agencyId"=a.id
         ORDER BY random()               
         
     `)
@@ -72,7 +72,7 @@ exports.get_tours_guides_detail = async (req, res, next) => {
         JOIN guides g on g.id=t."guideId"
         where t.id=${req.body.id};
     `)
-    console.log(req.body.id)
+    
 
     // const comment = await sequelize.query(`
     //     SELECT p.id,c.comment,c.rating,u.username,u.image
@@ -93,7 +93,7 @@ exports.get_tours_agency_detail = async (req, res, next) => {
     const tours = await sequelize.query(`
         SELECT t.*, a.username, a.image as agency_images
         FROM tours_agency_ads t
-        JOIN agencies a on a.id=t."agencyId"
+        JOIN agency a on a.id=t."agencyId"
         where t.id=${req.body.id};
     `)
 

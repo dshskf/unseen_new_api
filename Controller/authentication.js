@@ -17,7 +17,7 @@ exports.PostLogin = async (req, res, next) => {
     let user = null
 
 
-    if (req.body.type === 'user') {
+    if (req.body.type === 'users') {
         user = await userModel.findOne({
             where: {
                 username: req.body.username
@@ -114,8 +114,7 @@ exports.SendEmailReset = async (req, res, next) => {
     smtpTransport.sendMail(mailOptions, (error, response) => {
         smtpTransport.close();
 
-        if (error) {
-            console.log(error)
+        if (error) {            
             return res.status(200).json({
                 err: error
             })

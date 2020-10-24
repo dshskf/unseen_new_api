@@ -1,6 +1,5 @@
 const sequelize = require('sequelize')
 const db = require('../config/sequelize')
-const { Sequelize } = require('sequelize')
 
 const agency = db.define('agency', {
     id: {
@@ -60,6 +59,8 @@ const agency = db.define('agency', {
     repass_token_expired: {
         type: sequelize.DATE
     }
+}, {
+    freezeTableName: true
 })
 
 module.exports = agency

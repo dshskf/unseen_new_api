@@ -2,18 +2,34 @@ const sequelize = require('../config/sequelize')
 const chatsModel = require('../Models/chats')
 
 exports.getUserLocation = async (req, res, next) => {
+    const receiver = req.body.receiver_type    
+    
+    console.time("dbsave")
     let user_data = await sequelize.query(`
-        select u.* from users u 
-        inner join requests r on u.id=r.sender_id or u.id=r.receiver_id
-        where r.id=${req.body.reqId}
+        (
+            select a.id,a.username,a.image,a.phone,b.receiver_type as type, c.lat, c.long as lng
+            from ${receiver} a 		
+            inner join bookings b on a.id=b.receiver_id		
+            left join cities c on a.city_id=c.id
+            where b.id=${req.body.booking_id}
+        )
+        union all
+        (
+            select u.id,u.username,u.image,u.phone,'U' as type, c.lat, c.long as lng
+            from users u
+            inner join bookings b on u.id=b.sender_id		
+            left join cities c on u.city_id=c.id
+            where b.id=${req.body.booking_id}
+        )
     `)
+
 
     if (!user_data) {
         return res.status(200).json({
             err: `Can't find another user!`
         })
     }
-
+    console.timeEnd("dbsave")
     return res.status(200).json({
         data: user_data[0],
         err: null
@@ -21,9 +37,9 @@ exports.getUserLocation = async (req, res, next) => {
 }
 
 exports.updateUserLocation = async (req, res, next) => {
-    let user = await user_model.findOne({
+    let user = await req.userModel.findOne({
         where: {
-            id: req.body.userId
+            id: req.body.id
         }
     })
 
@@ -50,16 +66,16 @@ exports.chatsPerson = async (req, res, next) => {
     let receiver_list, receiver_code
 
     if (req.body.type === 'U') {
-        receiver_list = ['agencies', 'guides']
+        receiver_list = ['agency', 'guides']
         receiver_code = ['A', 'G']
     } else if (req.body.type === 'A') {
         receiver_list = ['users', 'guides']
         receiver_code = ['U', 'G']
     } else if (req.body.type === 'G') {
-        receiver_list = ['users', 'agencies']
+        receiver_list = ['users', 'agency']
         receiver_code = ['U', 'A']
     }
-    
+
     let friend = await sequelize.query(`        
         (select x.id,x.username,x.image, '${receiver_code[0]}' as type from ${receiver_list[0]} x,(
             SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
@@ -75,13 +91,12 @@ exports.chatsPerson = async (req, res, next) => {
         ) as chats
         where chats.sender_id=y.id) 
     `)
-    
+
 
     friend = friend[0]
-    console.log(friend)
 
     for (let i = 0; i < friend.length; i++) {
-        if (i === friend.length - 1) {           
+        if (i === friend.length - 1) {
             last_message_query += `(
                 SELECT * FROM chats
                 where sender_id=${friend[i].id} and receiver_id=${req.body.id} and sender_type='${friend[i].type}' or 
@@ -102,7 +117,6 @@ exports.chatsPerson = async (req, res, next) => {
 
     let last_message = await sequelize.query(last_message_query)
     last_message = last_message[0]
-    console.log(last_message)
 
     return res.status(200).json({
         data: friend,
@@ -111,14 +125,14 @@ exports.chatsPerson = async (req, res, next) => {
     })
 }
 
-exports.chatsData = async (req, res, next) => {    
+exports.chatsData = async (req, res, next) => {
     const msg = await sequelize.query(`
     select * from chats 
     where 
         (sender_id=${req.body.sender_id} AND receiver_id= ${req.body.receiver_id}) and (sender_type='${req.body.sender_type}' or receiver_type='${req.body.receiver_type}')
     OR
         (sender_id=${req.body.receiver_id} AND receiver_id= ${req.body.sender_id}) and (sender_type='${req.body.receiver_type}' or receiver_type='${req.body.sender_type}');
-    `)    
+    `)
 
     for (let i = 0; i < msg[0].length; i++) {
         if (msg[0][i].notification) {

@@ -10,7 +10,7 @@ exports.get_booking_guides = async (req, res, next) => {
         a.id as agency_id, a.username as agency_username, a.rating as agency_rating
         from bookings b
         join tours_agency_ads taa on b.tours_id=taa.id
-        join agencies a on b.receiver_id = a.id
+        join agency a on b.receiver_id = a.id
         where b.${req.body.action}=${req.userId} and receiver_type='A'
     `)
 
@@ -27,7 +27,7 @@ exports.get_booking_agency = async (req, res, next) => {
         u.id as user_id, u.username as user_username, u.email as user_email, u.phone as user_phone
         from bookings b
         join tours_agency_ads taa on b.tours_id=taa.id
-        join users u on b.receiver_id = u.id
+        join users u on b.sender_id = u.id
         where b.receiver_id=${req.userId} and receiver_type='A'
     `)
 
@@ -36,6 +36,34 @@ exports.get_booking_agency = async (req, res, next) => {
         err: null
     })
 }
+
+exports.update_booking_agency = async (req, res, next) => {
+    const req_data = await bookingModel.findOne({
+        where: {
+            id: req.body.request_id
+        }
+    })    
+
+    if (!req_data) {
+        return res.status(200).json({
+            err: "Can't find Bookings data!"
+        })
+    }
+
+    if (req.body.action === 'update') {
+        req_data.is_active = 1
+        await req_data.save()
+    }
+    else {
+        await req_data.destroy();
+    }
+
+    return res.status(200).json({
+        msg: "Success",
+        err: null
+    })
+}
+
 
 
 
@@ -46,7 +74,7 @@ exports.get_booking_user = async (req, res, next) => {
         a.id as agency_id, a.username as agency_username, a.rating as agency_rating
         from bookings b
         join tours_agency_ads taa on b.tours_id=taa.id
-        join agencies a on b.receiver_id = a.id
+        join agency a on b.receiver_id = a.id
         where b.sender_id=${req.userId} and receiver_type='A'
     `)
 
@@ -83,32 +111,6 @@ exports.update_booking_user = async (req, res, next) => {
     })
 }
 
-exports.update_booking_agency = async (req, res, next) => {
-    const req_data = await bookingModel.findOne({
-        where: {
-            id: req.body.request_id
-        }
-    })    
-
-    if (!req_data) {
-        return res.status(200).json({
-            err: "Can't find Bookings data!"
-        })
-    }
-
-    if (req.body.action === 'update') {
-        req_data.is_active = 1
-        await req_data.save()
-    }
-    else {
-        await req_data.destroy();
-    }
-
-    return res.status(200).json({
-        msg: "Success",
-        err: null
-    })
-}
 
 
 exports.update_booking = async (req, res, next) => {

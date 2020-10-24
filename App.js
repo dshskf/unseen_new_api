@@ -120,7 +120,7 @@ io.on('connection', (socket) => {
         socket.broadcast.to(parseInt(data.receiver_id)).emit('msg_response', data)
     })
 
-    socket.on('update_location', data => {
+    socket.on('update_location', data => {        
         socket.broadcast.to(parseInt(data.opposite_id)).emit('new_location', data)
     })
 

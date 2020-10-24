@@ -1,12 +1,13 @@
 const express = require('express')
 const router = express.Router()
 
+const model_selection = require('../middleware/model')
 const jwt_validation = require('../middleware/isAuth')
 const featuresController = require('../Controller/features')
 
 // Tracking
 router.post('/track', jwt_validation, featuresController.getUserLocation)
-router.post('/track/update', jwt_validation, featuresController.updateUserLocation)
+router.post('/track/update', jwt_validation, model_selection, featuresController.updateUserLocation)
 
 // Chats
 router.post('/chats', jwt_validation, featuresController.chatsData)//fetch chat message
