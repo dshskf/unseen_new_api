@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken')
 
 module.exports = (req, res, next) => {
     const authData = req.get('Authorization')
-    
+
     if (!authData) {
         return res.status(200).json({
             err: 'Not validated!'
@@ -24,9 +24,10 @@ module.exports = (req, res, next) => {
         return res.status(200).json({
             err: 'Login session has expired!'
         })
-    }
-
+    }        
     req.userId = decodedToken.userId
-
+    req.type = decodedToken.type
+    req.typeCode = decodedToken.typeCode
+    
     next()
 }

@@ -2,8 +2,8 @@ const sequelize = require('../config/sequelize')
 const chatsModel = require('../Models/chats')
 
 exports.getUserLocation = async (req, res, next) => {
-    const receiver = req.body.receiver_type    
-    
+    const receiver = req.type
+
     console.time("dbsave")
     let user_data = await sequelize.query(`
         (

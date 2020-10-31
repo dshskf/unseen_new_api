@@ -14,7 +14,7 @@ router.post('/chats', jwt_validation, featuresController.chatsData)//fetch chat 
 router.post('/chats/list', jwt_validation, featuresController.chatsPerson)// get friend list
 router.post('/chats/send', jwt_validation, featuresController.chatsSend)// add chats to db
 
-router.post('/location', featuresController.getLocationData)
+router.post('/location', jwt_validation, model_selection, featuresController.getLocationData)
 
 
 module.exports = router

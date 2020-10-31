@@ -72,7 +72,7 @@ exports.get_tours_guides_detail = async (req, res, next) => {
         JOIN guides g on g.id=t."guideId"
         where t.id=${req.body.id};
     `)
-    
+
 
     // const comment = await sequelize.query(`
     //     SELECT p.id,c.comment,c.rating,u.username,u.image
@@ -114,11 +114,9 @@ exports.get_tours_agency_detail = async (req, res, next) => {
 
 
 exports.get_tours_dashboard = async (req, res, next) => {
-    const model = req.body.type === "agency" ? toursAgencyModel : toursGuidesModel
-
-    const tours = await model.findAll({
+    const tours = await req.toursModel.findAll({
         where: {
-            [`${req.body.type}Id`]: req.userId
+            [`${req.type}Id`]: req.userId
         }
     })
 
@@ -137,21 +135,18 @@ exports.get_tours_dashboard = async (req, res, next) => {
 
 exports.get_tours_dashboard_detail = async (req, res, next) => {
     let model
-    let isGuides
 
-    if (req.body.type === "agency") {
+    if (req.type === "agency") {
         model = 'tours_agency_ads'
-        isGuides = false
-    } else if (req.body.type === 'guides') {
+    } else if (req.type === 'guides') {
         model = 'tours_guides_ads'
-        isGuides = true
     }
 
     let tours = await sequelize.query(`
         select tga.*,d.id as destination_id,d.period,c.id as city_id, c.name as city from ${model} tga
         join destinations d on tga.id=d.tours_id
         join cities c on c.id=d.city_id
-        where tga.id=${req.body.id} and d."isGuides"=${isGuides}
+        where tga.id=${req.body.id} and d."isGuides"=${req.isGuides}
     `)
     if (tours[0].length < 1) {
         tours = await sequelize.query(`select * from ${model} where id=${req.body.id}`)
@@ -203,7 +198,7 @@ exports.add_tours = async (req, res, next) => {
     req.body.isActive = true
     req.body.image = images
 
-    if (req.body.type === "agency") {
+    if (req.type === "agency") {
         req.body.agencyId = req.userId
 
     } else {
@@ -398,7 +393,7 @@ exports.request_to_seller = async (req, res, next) => {
     })
 }
 
-exports.booking_tours = async (req, res, next) => {    
+exports.booking_tours = async (req, res, next) => {
     const check = await bookingModel.findOne({
         where: {
             sender_id: req.body.sender_id,

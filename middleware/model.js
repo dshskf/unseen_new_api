@@ -7,13 +7,13 @@ const toursAgencyModel = require('../Models/tours-agency')
 
 
 module.exports = (req, res, next) => {
-    if (req.body.type === 'users') {
+    if (req.type === 'users') {
         req.userModel = userModel
-    } else if (req.body.type === 'agency') {
+    } else if (req.type === 'agency') {
         req.userModel = agencyModel
         req.toursModel = toursAgencyModel
         req.isGuides = false
-    } else if (req.body.type === 'guides') {
+    } else if (req.type === 'guides') {
         req.userModel = guidesModel
         req.toursModel = toursGuidesModel
         req.isGuides = true

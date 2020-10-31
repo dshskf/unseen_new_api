@@ -54,11 +54,12 @@ exports.PostLogin = async (req, res, next) => {
 
     const jwt_token = jwt.sign({
         username: user.username,
-        userId: user.id
+        userId: user.id,
+        type: req.body.type,
+        typeCode: req.body.type[0].toUpperCase()
     },
         'SUp3rs3Cr3TR0kEn',
         { expiresIn: '7d' })
-
 
     return res.status(200).json({
         status: 200,
@@ -114,7 +115,7 @@ exports.SendEmailReset = async (req, res, next) => {
     smtpTransport.sendMail(mailOptions, (error, response) => {
         smtpTransport.close();
 
-        if (error) {            
+        if (error) {
             return res.status(200).json({
                 err: error
             })

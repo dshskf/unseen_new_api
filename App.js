@@ -48,6 +48,7 @@ const io = require('socket.io')(server, {
 
 const filestorage = multer.diskStorage({
     destination: (req, file, cb) => {
+        console.log("a")
         cb(null, 'images')
     },
     filename: (req, file, cb) => {
@@ -56,6 +57,7 @@ const filestorage = multer.diskStorage({
 })
 
 const filefilter = (req, file, cb) => {
+    console.log("b")
     const ext = file.mimetype.split('/')[1]
     if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
         cb(null, true)
@@ -111,17 +113,19 @@ DbCon.sync()
 io.origins('*:*')
 
 io.on('connection', (socket) => {
-
+    console.log("new")
     socket.on('join_room', data => {
+        console.log(data)
         socket.join(data.room_id)
     })
 
-    socket.on('msg', data => {        
-        socket.broadcast.to(parseInt(data.receiver_id)).emit('msg_response', data)
+    socket.on('msg', data => {
+        let receiver = data.receiver_id + "-" + data.receiver_type
+        socket.broadcast.to(receiver).emit('msg_response', data)
     })
 
-    socket.on('update_location', data => {        
-        socket.broadcast.to(parseInt(data.opposite_id)).emit('new_location', data)
+    socket.on('update_location', data => {
+        socket.broadcast.to(data.opposite_id).emit('new_location', data)
     })
 
     socket.on("disconnect", () => {

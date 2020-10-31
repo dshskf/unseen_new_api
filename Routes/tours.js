@@ -13,8 +13,8 @@ router.post('/booking', jwt_validation, productController.booking_tours)
 router.post('/guides/details', productController.get_tours_guides_detail)
 router.post('/agency/details', productController.get_tours_agency_detail)
 
-router.post('/dashboard', jwt_validation, productController.get_tours_dashboard)//get dashboard product
-router.post('/dashboard/details', jwt_validation, productController.get_tours_dashboard_detail)//dashboard
+router.get('/dashboard', jwt_validation, model_selection, productController.get_tours_dashboard)//get dashboard product
+router.post('/dashboard/details', jwt_validation, model_selection, productController.get_tours_dashboard_detail)//dashboard
 
 router.post('/dashboard/add', jwt_validation, model_selection, productController.add_tours)//dashboard
 router.post('/dashboard/edit', jwt_validation, model_selection, productController.edit_tours)//dashboard
