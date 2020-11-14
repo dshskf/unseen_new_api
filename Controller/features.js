@@ -2,12 +2,28 @@ const sequelize = require('../config/sequelize')
 const chatsModel = require('../Models/chats')
 
 exports.getUserLocation = async (req, res, next) => {
-    const receiver = req.type
+    let receiver = req.type === 'users' ? 'agency' : req.type
+    // let user_data = await sequelize.query(`
+    //     (
+    //         select a.id,a.username,a.image,a.phone,b.receiver_type as type, c.lat, c.long as lng
+    //         from ${receiver} a 		
+    //         inner join bookings b on a.id=b.receiver_id		
+    //         left join cities c on a.city_id=c.id
+    //         where b.id=${req.body.booking_id}
+    //     )
+    //     union all
+    //     (
+    //         select u.id,u.username,u.image,u.phone,'U' as type, c.lat, c.long as lng
+    //         from users u
+    //         inner join bookings b on u.id=b.sender_id		
+    //         left join cities c on u.city_id=c.id
+    //         where b.id=${req.body.booking_id}
+    //     )
+    // `)
 
-    console.time("dbsave")
     let user_data = await sequelize.query(`
         (
-            select a.id,a.username,a.image,a.phone,b.receiver_type as type, c.lat, c.long as lng
+            select a.id,a.username,a.image,a.phone,a.lat,a.lng,b.receiver_type as type
             from ${receiver} a 		
             inner join bookings b on a.id=b.receiver_id		
             left join cities c on a.city_id=c.id
@@ -15,7 +31,7 @@ exports.getUserLocation = async (req, res, next) => {
         )
         union all
         (
-            select u.id,u.username,u.image,u.phone,'U' as type, c.lat, c.long as lng
+            select u.id,u.username,u.image,u.phone,u.lat,u.lng,'U' as type
             from users u
             inner join bookings b on u.id=b.sender_id		
             left join cities c on u.city_id=c.id
@@ -29,7 +45,7 @@ exports.getUserLocation = async (req, res, next) => {
             err: `Can't find another user!`
         })
     }
-    console.timeEnd("dbsave")
+
     return res.status(200).json({
         data: user_data[0],
         err: null
@@ -65,13 +81,13 @@ exports.chatsPerson = async (req, res, next) => {
     let last_message_query = ''
     let receiver_list, receiver_code
 
-    if (req.body.type === 'U') {
+    if (req.typeCode === 'U') {
         receiver_list = ['agency', 'guides']
         receiver_code = ['A', 'G']
-    } else if (req.body.type === 'A') {
+    } else if (req.typeCode === 'A') {
         receiver_list = ['users', 'guides']
         receiver_code = ['U', 'G']
-    } else if (req.body.type === 'G') {
+    } else if (req.typeCode === 'G') {
         receiver_list = ['users', 'agency']
         receiver_code = ['U', 'A']
     }
@@ -79,14 +95,14 @@ exports.chatsPerson = async (req, res, next) => {
     let friend = await sequelize.query(`        
         (select x.id,x.username,x.image, '${receiver_code[0]}' as type from ${receiver_list[0]} x,(
             SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
-            where receiver_id=${req.body.id} and sender_type<>'${req.body.type}' and sender_type<>'${receiver_code[1]}'
+            where receiver_id=${req.userId} and sender_type<>'${req.typeCode}' and sender_type<>'${receiver_code[1]}'
             ORDER BY sender_id
         ) as chats
         where chats.sender_id=x.id)
 	    union all
 		(select y.id,y.username,y.image, '${receiver_code[1]}' as type from ${receiver_list[1]} y,(
             SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
-            where receiver_id=${req.body.id} and sender_type<>'${req.body.type}' and sender_type<>'${receiver_code[0]}'
+            where receiver_id=${req.userId} and sender_type<>'${req.typeCode}' and sender_type<>'${receiver_code[0]}'
             ORDER BY sender_id
         ) as chats
         where chats.sender_id=y.id) 
@@ -99,16 +115,16 @@ exports.chatsPerson = async (req, res, next) => {
         if (i === friend.length - 1) {
             last_message_query += `(
                 SELECT * FROM chats
-                where sender_id=${friend[i].id} and receiver_id=${req.body.id} and sender_type='${friend[i].type}' or 
-                sender_id=${req.body.id} and receiver_id=${friend[i].id} and receiver_type='${friend[i].type}'                 
+                where sender_id=${friend[i].id} and receiver_id=${req.userId} and sender_type='${friend[i].type}' or 
+                sender_id=${req.userId} and receiver_id=${friend[i].id} and receiver_type='${friend[i].type}'                 
                 ORDER BY "createdAt" desc
                 limit 1
             )`
         } else {
             last_message_query += `(
                 SELECT * FROM chats
-                where sender_id=${friend[i].id} and receiver_id=${req.body.id} and sender_type='${friend[i].type}' or 
-                sender_id=${req.body.id} and receiver_id=${friend[i].id} and receiver_type='${friend[i].type}'                 
+                where sender_id=${friend[i].id} and receiver_id=${req.userId} and sender_type='${friend[i].type}' or 
+                sender_id=${req.userId} and receiver_id=${friend[i].id} and receiver_type='${friend[i].type}'                 
                 ORDER BY "createdAt" desc
                 limit 1
             ) UNION ALL `
@@ -129,9 +145,9 @@ exports.chatsData = async (req, res, next) => {
     const msg = await sequelize.query(`
     select * from chats 
     where 
-        (sender_id=${req.body.sender_id} AND receiver_id= ${req.body.receiver_id}) and (sender_type='${req.body.sender_type}' or receiver_type='${req.body.receiver_type}')
+        (sender_id=${req.userId} AND receiver_id= ${req.body.receiver_id}) and (sender_type='${req.typeCode}' or receiver_type='${req.body.receiver_type}')
     OR
-        (sender_id=${req.body.receiver_id} AND receiver_id= ${req.body.sender_id}) and (sender_type='${req.body.receiver_type}' or receiver_type='${req.body.sender_type}');
+        (sender_id=${req.body.receiver_id} AND receiver_id= ${req.userId}) and (sender_type='${req.body.receiver_type}' or receiver_type='${req.typeCode}');
     `)
 
     for (let i = 0; i < msg[0].length; i++) {
@@ -154,6 +170,8 @@ exports.chatsData = async (req, res, next) => {
 }
 
 exports.chatsSend = async (req, res, next) => {
+    req.body.sender_id = req.userId
+    req.body.sender_type = req.typeCode
     const post_chat = await chatsModel.create(req.body);
 
     return res.status(200).json({
@@ -174,8 +192,7 @@ exports.getLocationData = async (req, res, next) => {
             inner join cities cy on cy.state_id =s.id
             where cy.id=${req.body.cities_id};
         `
-    }
-    else if (req.body.action === "countries") {
+    } else if (req.body.action === "countries") {
         query = `select c.id as val, c.name as label from countries c`
     } else if (req.body.action === "states") {
         query = `select s.id as val, s.name as label from states s where country_id = ${req.body.countries_id}`

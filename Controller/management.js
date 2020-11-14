@@ -1,6 +1,7 @@
 const sequelize = require('../config/sequelize')
 const requestModel = require('../Models/request')
 const bookingModel = require('../Models/booking')
+const toursAgencyModel = require('../Models/tours-agency')
 
 exports.get_booking_guides = async (req, res, next) => {
     const q = req.body.action === "sender_id" ? "receiver_id" : "sender_id"
@@ -42,7 +43,7 @@ exports.update_booking_agency = async (req, res, next) => {
         where: {
             id: req.body.request_id
         }
-    })    
+    })
 
     if (!req_data) {
         return res.status(200).json({
@@ -85,24 +86,33 @@ exports.get_booking_user = async (req, res, next) => {
 }
 
 exports.update_booking_user = async (req, res, next) => {
-    const req_data = await bookingModel.findOne({
+    const req_booking = await bookingModel.findOne({
         where: {
             id: req.body.request_id
         }
     })
 
-    if (!req_data) {
+    const req_tours = await toursAgencyModel.findOne({
+        where: {
+            id: req.body.tours_id
+        }
+    })
+
+    if (!req_booking || !req_tours) {
         return res.status(200).json({
-            err: "Can't find Bookings data!"
+            err: "Can't find data!"
         })
     }
 
     if (req.body.action === 'update') {
-        req_data.is_payed = 1
-        await req_data.save()
+        req_booking.is_payed = 1
+        req_tours.quota_left = req_tours.quota_left - 1
+        
+        await req_booking.save()
+        await req_tours.save()
     }
     else {
-        await req_data.destroy();
+        await req_booking.destroy();
     }
 
     return res.status(200).json({

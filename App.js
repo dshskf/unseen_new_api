@@ -112,10 +112,8 @@ DbCon.sync()
 
 io.origins('*:*')
 
-io.on('connection', (socket) => {
-    console.log("new")
-    socket.on('join_room', data => {
-        console.log(data)
+io.on('connection', (socket) => {    
+    socket.on('join_room', data => {             
         socket.join(data.room_id)
     })
 
@@ -124,7 +122,7 @@ io.on('connection', (socket) => {
         socket.broadcast.to(receiver).emit('msg_response', data)
     })
 
-    socket.on('update_location', data => {
+    socket.on('update_location', data => {        
         socket.broadcast.to(data.opposite_id).emit('new_location', data)
     })
 

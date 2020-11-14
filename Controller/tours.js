@@ -91,11 +91,15 @@ exports.get_tours_guides_detail = async (req, res, next) => {
 
 exports.get_tours_agency_detail = async (req, res, next) => {
     const tours = await sequelize.query(`
-        SELECT t.*, a.username, a.image as agency_images
+        SELECT t.*, a.username, a.image as agency_images, c.name as city_name
         FROM tours_agency_ads t
-        JOIN agency a on a.id=t."agencyId"
+        inner JOIN agency a on a.id=t."agencyId"
+        inner join destinations d on d.tours_id=t.id
+        inner join cities c on c.id=d.city_id
         where t.id=${req.body.id};
     `)
+
+
 
     // const comment = await sequelize.query(`
     //     SELECT p.id,c.comment,c.rating,u.username,u.image
@@ -275,6 +279,8 @@ exports.edit_tours = async (req, res, next) => {
     tours.description = body.description;
     tours.start_date = body.start_date;
     tours.end_date = body.end_date;
+    tours.quota = body.quota;
+    tours.quota_left = body.quota;    
 
     if (req.body.img_del) {
         tours.image = files;
