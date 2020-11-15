@@ -39,24 +39,24 @@ exports.get_booking_agency = async (req, res, next) => {
 }
 
 exports.update_booking_agency = async (req, res, next) => {
-    const req_data = await bookingModel.findOne({
+    const req_booking = await bookingModel.findOne({
         where: {
-            id: req.body.request_id
+            id: req.body.booking_id
         }
     })
 
-    if (!req_data) {
+    if (!req_booking) {
         return res.status(200).json({
             err: "Can't find Bookings data!"
         })
     }
 
     if (req.body.action === 'update') {
-        req_data.is_active = 1
-        await req_data.save()
+        req_booking.is_active = 1
+        await req_booking.save()
     }
     else {
-        await req_data.destroy();
+        await req_booking.destroy();
     }
 
     return res.status(200).json({
@@ -88,26 +88,32 @@ exports.get_booking_user = async (req, res, next) => {
 exports.update_booking_user = async (req, res, next) => {
     const req_booking = await bookingModel.findOne({
         where: {
-            id: req.body.request_id
+            id: req.body.booking_id
         }
     })
 
-    const req_tours = await toursAgencyModel.findOne({
-        where: {
-            id: req.body.tours_id
-        }
-    })
-
-    if (!req_booking || !req_tours) {
+    if (!req_booking) {
         return res.status(200).json({
-            err: "Can't find data!"
+            err: "Can't find Booking data!"
         })
     }
 
     if (req.body.action === 'update') {
+        const req_tours = await toursAgencyModel.findOne({
+            where: {
+                id: req.body.tours_id
+            }
+        })
+
+        if (!req_tours) {
+            return res.status(200).json({
+                err: "Can't find Tours data!"
+            })
+        }
+
         req_booking.is_payed = 1
         req_tours.quota_left = req_tours.quota_left - 1
-        
+
         await req_booking.save()
         await req_tours.save()
     }

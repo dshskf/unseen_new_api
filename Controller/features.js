@@ -55,7 +55,7 @@ exports.getUserLocation = async (req, res, next) => {
 exports.updateUserLocation = async (req, res, next) => {
     let user = await req.userModel.findOne({
         where: {
-            id: req.body.id
+            id: req.userId
         }
     })
 
