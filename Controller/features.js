@@ -142,25 +142,34 @@ exports.chatsPerson = async (req, res, next) => {
 }
 
 exports.chatsData = async (req, res, next) => {
+    const tours_data_query = req.body.tours_type === 'A' ?
+        `select c.*, taa.title as tours_title, taa.image as tours_image, taa.cost as tours_cost
+        from chats c 
+        left join tours_agency_ads taa on taa.id=c.tours_id `
+        :
+        `select c.*, tga.title as tours_title, tga.image as tours_image, tga.cost as tours_cost
+        from chats c 
+        left join tours_guides_ads tga on tga.id=c.tours_id `
+
     const msg = await sequelize.query(`
-    select * from chats 
+    ${tours_data_query}
     where 
-        (sender_id=${req.userId} AND receiver_id= ${req.body.receiver_id}) and (sender_type='${req.typeCode}' or receiver_type='${req.body.receiver_type}')
+        (c.sender_id=${req.userId} AND c.receiver_id= ${req.body.receiver_id}) and (c.sender_type='${req.typeCode}' or c.receiver_type='${req.body.receiver_type}')
     OR
-        (sender_id=${req.body.receiver_id} AND receiver_id= ${req.userId}) and (sender_type='${req.body.receiver_type}' or receiver_type='${req.typeCode}');
+        (c.sender_id=${req.body.receiver_id} AND c.receiver_id= ${req.userId}) and (c.sender_type='${req.body.receiver_type}' or c.receiver_type='${req.typeCode}');
     `)
 
-    for (let i = 0; i < msg[0].length; i++) {
-        if (msg[0][i].notification) {
-            const products = await productModel.findOne({
-                where: {
-                    id: msg[0][i].notification
-                }
-            })
+    // for (let i = 0; i < msg[0].length; i++) {
+    //     if (msg[0][i].notification) {
+    //         const products = await productModel.findOne({
+    //             where: {
+    //                 id: msg[0][i].notification
+    //             }
+    //         })
 
-            msg[0][i].prod_data = products
-        }
-    }
+    //         msg[0][i].prod_data = products
+    //     }
+    // }
 
     return res.status(200).json({
         data: msg[0],
@@ -173,6 +182,12 @@ exports.chatsSend = async (req, res, next) => {
     req.body.sender_id = req.userId
     req.body.sender_type = req.typeCode
     const post_chat = await chatsModel.create(req.body);
+
+    if (!post_chat) {
+        return res.status(200).json({
+            err: `Can't send message!`
+        })
+    }
 
     return res.status(200).json({
         msg: "success",

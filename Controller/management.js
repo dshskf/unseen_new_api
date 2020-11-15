@@ -25,10 +25,11 @@ exports.get_booking_agency = async (req, res, next) => {
     let booking_data = await sequelize.query(`
         select b.*, 
         taa.id as ads_id, taa.title as ads_title, taa.image as ads_image, taa.cost as ads_price, taa.start_date as ads_start_date,
-        u.id as user_id, u.username as user_username, u.email as user_email, u.phone as user_phone
+        u.id as user_id, u.username as user_username, u.email as user_email, u.phone as user_phone, a.username as agency_username
         from bookings b
-        join tours_agency_ads taa on b.tours_id=taa.id
-        join users u on b.sender_id = u.id
+        inner join tours_agency_ads taa on b.tours_id=taa.id
+        inner join users u on b.sender_id = u.id
+        inner join agency a on a.id=b.receiver_id
         where b.receiver_id=${req.userId} and receiver_type='A'
     `)
 
@@ -72,10 +73,11 @@ exports.get_booking_user = async (req, res, next) => {
     let sender_data = await sequelize.query(`
         select b.*, 
         taa.id as ads_id, taa.title as ads_title, taa.image as ads_image, taa.cost as ads_price, taa.start_date as ads_start_date,
-        a.id as agency_id, a.username as agency_username, a.rating as agency_rating
+        a.id as agency_id, a.username as agency_username, a.rating as agency_rating,u.username as user_username
         from bookings b
-        join tours_agency_ads taa on b.tours_id=taa.id
-        join agency a on b.receiver_id = a.id
+        inner join tours_agency_ads taa on b.tours_id=taa.id
+        inner join agency a on b.receiver_id = a.id
+        inner join users u on u.id=b.sender_id
         where b.sender_id=${req.userId} and receiver_type='A'
     `)
 
