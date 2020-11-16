@@ -4,8 +4,8 @@ const productController = require('../Controller/tours')
 const jwt_validation = require('../middleware/isAuth')
 const model_selection = require('../middleware/model')
 
-router.get('/guides', productController.get_tours_guides)
-router.get('/agency', productController.get_tours_agency)
+router.post('/guides', productController.get_tours_guides)
+router.post('/agency', productController.get_tours_agency)
 
 router.post('/request', jwt_validation, productController.request_to_seller)// send request of product to seller
 router.post('/booking', jwt_validation, productController.booking_tours)

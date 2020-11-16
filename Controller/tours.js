@@ -16,28 +16,32 @@ const matchObjects = (data, dest) => {
 }
 
 exports.get_tours_guides = async (req, res, next) => {
-    // query ini buat agency ui
+    const offset = (req.body.page - 1) * 12
     let tours = await sequelize.query(`
         SELECT g.id,g.username,g.cost,g.rating,g.total_tours,g.image,c.name as country
         FROM guides g 
         JOIN countries c on g.country_id=c.id
-        ORDER BY random() LIMIT 10
+        Limit 12 offset ${offset}     
     `)
+    let total_page = await sequelize.query(`select count(*) from guides`)
+
+    total_page = Math.ceil(total_page[0][0].count / 12)
     tours = tours[0]
 
     return res.status(200).json({
         tours: tours,
+        total_page: total_page,
         err: null
     })
 }
 
-exports.get_tours_agency = async (req, res, next) => {
+exports.get_tours_agency = async (req, res, next) => {    
+    const offset = (req.body.page - 1) * 12
     let tours = await sequelize.query(`
         SELECT t.id,t.title,t.cost, t.start_date, t.rating,t.image, a.id as agencyId,a.username
         FROM tours_agency_ads t 
         JOIN agency a on t."agencyId"=a.id
-        ORDER BY random()               
-        
+        limit 12 offset ${offset}                  
     `)
     tours = tours[0]
 
@@ -59,8 +63,13 @@ exports.get_tours_agency = async (req, res, next) => {
 
     tours = matchObjects(tours, destination)
 
+    let total_page = await sequelize.query(`select count(*) from tours_agency_ads`)
+    total_page = Math.ceil(total_page[0][0].count / 12)
+
+
     return res.status(200).json({
         tours: tours,
+        total_page: total_page,
         err: null
     })
 }
@@ -280,7 +289,7 @@ exports.edit_tours = async (req, res, next) => {
     tours.start_date = body.start_date;
     tours.end_date = body.end_date;
     tours.quota = body.quota;
-    tours.quota_left = body.quota;    
+    tours.quota_left = body.quota;
 
     if (req.body.img_del) {
         tours.image = files;
@@ -410,7 +419,7 @@ exports.booking_tours = async (req, res, next) => {
 
     if (check) {
         return res.status(200).json({
-            err: "You already requset for this!"
+            err: "You already Booked this tours!"
         })
     }
 
