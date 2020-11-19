@@ -47,8 +47,7 @@ const io = require('socket.io')(server, {
 
 
 const filestorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        console.log("a")
+    destination: (req, file, cb) => {        
         cb(null, 'images')
     },
     filename: (req, file, cb) => {
@@ -112,8 +111,8 @@ DbCon.sync()
 
 io.origins('*:*')
 
-io.on('connection', (socket) => {    
-    socket.on('join_room', data => {             
+io.on('connection', (socket) => {
+    socket.on('join_room', data => {
         socket.join(data.room_id)
     })
 
@@ -122,9 +121,14 @@ io.on('connection', (socket) => {
         socket.broadcast.to(receiver).emit('msg_response', data)
     })
 
-    socket.on('update_location', data => {        
+    socket.on('update_location', data => {
         socket.broadcast.to(data.opposite_id).emit('new_location', data)
     })
+
+    socket.on('update_booking', data => {        
+        socket.broadcast.to(data.opposite_room).emit('new_booking', data)
+    })
+
 
     socket.on("disconnect", () => {
         // If user or admin disconnected

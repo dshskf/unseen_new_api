@@ -4,7 +4,7 @@ const managementController = require('../Controller/management')
 const jwt_validation = require('../middleware/isAuth')
 
 router.post('/guides', jwt_validation, managementController.get_booking_guides)
-router.get('/agency', jwt_validation, managementController.get_booking_agency)
+router.post('/agency', jwt_validation, managementController.get_booking_agency)
 router.post('/user', jwt_validation, managementController.get_booking_user)
 
 router.post('/guides/update', jwt_validation, managementController.update_booking)

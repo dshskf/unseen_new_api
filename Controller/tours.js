@@ -16,12 +16,20 @@ const matchObjects = (data, dest) => {
 }
 
 exports.get_tours_guides = async (req, res, next) => {
-    const offset = (req.body.page - 1) * 12
+    let offset, limit
+    if (req.body.is_mobile) {
+        offset = 0
+        limit = req.body.page * 12
+    } else {
+        offset = (req.body.page - 1) * 12
+        limit = 12
+    }
+
     let tours = await sequelize.query(`
         SELECT g.id,g.username,g.cost,g.rating,g.total_tours,g.image,c.name as country
         FROM guides g 
         JOIN countries c on g.country_id=c.id
-        Limit 12 offset ${offset}     
+        Limit ${limit} offset ${offset}     
     `)
     let total_page = await sequelize.query(`select count(*) from guides`)
 
@@ -36,12 +44,21 @@ exports.get_tours_guides = async (req, res, next) => {
 }
 
 exports.get_tours_agency = async (req, res, next) => {    
-    const offset = (req.body.page - 1) * 12
+    let offset, limit
+    if (req.body.is_mobile) {
+        offset = 0
+        limit = req.body.page * 12
+    } else {
+        offset = (req.body.page - 1) * 12
+        limit = 12
+    }
+
+
     let tours = await sequelize.query(`
         SELECT t.id,t.title,t.cost, t.start_date, t.rating,t.image, a.id as agencyId,a.username
         FROM tours_agency_ads t 
         JOIN agency a on t."agencyId"=a.id
-        limit 12 offset ${offset}                  
+        limit ${limit} offset ${offset}                  
     `)
     tours = tours[0]
 

@@ -79,7 +79,7 @@ exports.updateUserLocation = async (req, res, next) => {
 
 exports.chatsPerson = async (req, res, next) => {
     let last_message_query = ''
-    let receiver_list, receiver_code
+    let receiver_list, receiver_code    
 
     if (req.typeCode === 'U') {
         receiver_list = ['agency', 'guides']
@@ -107,7 +107,6 @@ exports.chatsPerson = async (req, res, next) => {
         ) as chats
         where chats.sender_id=y.id) 
     `)
-
 
     friend = friend[0]
 
