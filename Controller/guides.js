@@ -25,7 +25,7 @@ exports.PostRegister = async (req, res, next) => {
         })
     }
 
-    req.body.password = await bcrypt.hash(req.body.password, 10)      
+    req.body.password = await bcrypt.hash(req.body.password, 10)
 
     await guidesModel.create(req.body)
 
@@ -80,11 +80,14 @@ exports.postEdit = async (req, res, next) => {
     user.username = req.body.username
     user.email = req.body.email
     user.phone = req.body.phone
-    user.country_id = req.body.country
-    user.state_id = req.body.state
-    user.city_id = req.body.city
-    user.lat = req.body.lat
-    user.lng = req.body.lng
+    user.country_id = parseInt(req.body.country)
+    user.state_id = parseInt(req.body.state)
+    user.city_id = parseInt(req.body.city)
+    user.lat = parseFloat(req.body.lat)
+    user.lng = parseFloat(req.body.lng)
+    user.rating = 0
+    user.total_tours = 0
+
 
     if (req.files[0]) {
         user.image = req.files[0].path

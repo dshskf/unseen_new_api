@@ -7,20 +7,20 @@ const request = db.define('request', {
         allowNull: false,
         primaryKey: true,
         autoIncrement: true
-    },
-    tours_id: {
+    },   
+    sender_id: {
         type: sequelize.INTEGER,
         allowNull: false
     },
-    sender_id: {
-        type: sequelize.INTEGER,
+    sender_type: {
+        type: sequelize.CHAR(1),
         allowNull: false
     },
     receiver_id: {
         type: sequelize.INTEGER,
         allowNull: false
-    },
-    reason: {
+    },   
+    description: {
         type: sequelize.TEXT,
         allowNull: false
     },
@@ -46,25 +46,17 @@ const request = db.define('request', {
         allowNull: false
     },
     is_approve: {
-        type: sequelize.INTEGER,
+        type: sequelize.BOOLEAN,
         allowNull: false
     },
-    is_paying: {
-        type: sequelize.INTEGER,
+    is_payed: {
+        type: sequelize.BOOLEAN,
         allowNull: false
     },
     is_active: {
-        type: sequelize.INTEGER,
+        type: sequelize.BOOLEAN,
         allowNull: false
     },
-    receiver_type: {
-        type: sequelize.CHAR(1),
-        allowNull: false
-    },
-    sender_type: {
-        type: sequelize.CHAR(1),
-        allowNull: false
-    }
 })
 
 module.exports = request

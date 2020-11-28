@@ -109,6 +109,8 @@ DbCon.sync()
     })
     .catch(err => console.log(err))
 
+
+// ANCHOR IO Connections
 io.origins('*:*')
 
 io.on('connection', (socket) => {
@@ -121,12 +123,16 @@ io.on('connection', (socket) => {
         socket.broadcast.to(receiver).emit('msg_response', data)
     })
 
-    socket.on('update_location', data => {
+    socket.on('update_location', data => {                
         socket.broadcast.to(data.opposite_id).emit('new_location', data)
     })
 
     socket.on('update_booking', data => {        
         socket.broadcast.to(data.opposite_room).emit('new_booking', data)
+    })
+
+    socket.on('update_request', data => {        
+        socket.broadcast.to(data.opposite_room).emit('new_request', data)
     })
 
 

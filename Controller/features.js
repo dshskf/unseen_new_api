@@ -2,39 +2,28 @@ const sequelize = require('../config/sequelize')
 const chatsModel = require('../Models/chats')
 
 exports.getUserLocation = async (req, res, next) => {
-    let receiver = req.type === 'users' ? 'agency' : req.type
-    // let user_data = await sequelize.query(`
-    //     (
-    //         select a.id,a.username,a.image,a.phone,b.receiver_type as type, c.lat, c.long as lng
-    //         from ${receiver} a 		
-    //         inner join bookings b on a.id=b.receiver_id		
-    //         left join cities c on a.city_id=c.id
-    //         where b.id=${req.body.booking_id}
-    //     )
-    //     union all
-    //     (
-    //         select u.id,u.username,u.image,u.phone,'U' as type, c.lat, c.long as lng
-    //         from users u
-    //         inner join bookings b on u.id=b.sender_id		
-    //         left join cities c on u.city_id=c.id
-    //         where b.id=${req.body.booking_id}
-    //     )
-    // `)
+    let receiver
+    if (req.body.receiver_type === 'A') {
+        receiver = 'agency'
+    } else if (req.body.receiver_type === 'G') {
+        receiver = 'guides'
+    } else {
+        receiver = 'agency'
+    }
+    const type_code=receiver[0].toUpperCase()        
 
     let user_data = await sequelize.query(`
         (
-            select a.id,a.username,a.image,a.phone,a.lat,a.lng,b.receiver_type as type
+            select a.id,a.username,a.image,a.phone,a.lat,a.lng,'${type_code}' as type
             from ${receiver} a 		
-            inner join bookings b on a.id=b.receiver_id		
-            left join cities c on a.city_id=c.id
+            inner join bookings b on a.id=b.receiver_id		     
             where b.id=${req.body.booking_id}
         )
         union all
         (
             select u.id,u.username,u.image,u.phone,u.lat,u.lng,'U' as type
             from users u
-            inner join bookings b on u.id=b.sender_id		
-            left join cities c on u.city_id=c.id
+            inner join bookings b on u.id=b.sender_id		            
             where b.id=${req.body.booking_id}
         )
     `)
@@ -52,7 +41,7 @@ exports.getUserLocation = async (req, res, next) => {
     })
 }
 
-exports.updateUserLocation = async (req, res, next) => {
+exports.updateUserLocation = async (req, res, next) => {    
     let user = await req.userModel.findOne({
         where: {
             id: req.userId
@@ -79,7 +68,7 @@ exports.updateUserLocation = async (req, res, next) => {
 
 exports.chatsPerson = async (req, res, next) => {
     let last_message_query = ''
-    let receiver_list, receiver_code    
+    let receiver_list, receiver_code
 
     if (req.typeCode === 'U') {
         receiver_list = ['agency', 'guides']

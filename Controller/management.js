@@ -3,25 +3,17 @@ const requestModel = require('../Models/request')
 const bookingModel = require('../Models/booking')
 const toursAgencyModel = require('../Models/tours-agency')
 
-exports.get_booking_guides = async (req, res, next) => {
-    const q = req.body.action === "sender_id" ? "receiver_id" : "sender_id"
-    let sender_data = await sequelize.query(`
-        select b.*, 
-        taa.id as ads_id, taa.title as ads_title,  taa.image as ads_image,
-        a.id as agency_id, a.username as agency_username, a.rating as agency_rating
-        from bookings b
-        join tours_agency_ads taa on b.tours_id=taa.id
-        join agency a on b.receiver_id = a.id
-        where b.${req.body.action}=${req.userId} and receiver_type='A'
-    `)
+// ANCHOR Get Request
 
-    return res.status(200).json({
-        data: sender_data[0],
-        err: null
-    })
+exports.get_request = async (req, res, next) => {
+    if (req.body.type === 'G') {
+        this.get_request_guides(req, res)
+    } else {
+        this.get_request_customer(req, res)
+    }
 }
 
-exports.get_booking_agency = async (req, res, next) => {
+exports.get_request_guides = async (req, res) => {
     let offset, limit
     if (req.body.is_mobile) {
         offset = 0
@@ -30,48 +22,85 @@ exports.get_booking_agency = async (req, res, next) => {
         offset = (req.body.page - 1) * 8
         limit = 8
     }
-        
-    let booking_data = await sequelize.query(`
-        select b.*, 
-        taa.id as ads_id, taa.title as ads_title, taa.image as ads_image, taa.cost as ads_price, taa.start_date as ads_start_date,
-        u.id as user_id, u.username as user_username, u.email as user_email, u.phone as user_phone, a.username as agency_username
-        from bookings b
-        inner join tours_agency_ads taa on b.tours_id=taa.id
-        inner join users u on b.sender_id = u.id
-        inner join agency a on a.id=b.receiver_id
-        where b.receiver_id=${req.userId} and b.receiver_type='A'
+    let customer = await sequelize.query(`
+        select r.*,users.*,agency.*
+        from requests r
+        left join (
+            select id as users_id, username as users_name, phone as users_phone,
+                email as users_email, image as users_image
+            from users
+        ) users on r.sender_id = users.users_id and users.users_id is not null and r.sender_type='U' 
+        left join (
+            select id as agency_id, username as agency_name, phone as agency_phone,
+                email as agency_email, image as agency_image
+            from agency
+        ) agency on r.sender_id = agency.agency_id and agency.agency_id is not null and r.sender_type='A'     
+        where r.receiver_id=${req.userId}
         limit ${limit} offset ${offset}
     `)
 
-    let total_page = await sequelize.query(`select count(*) from bookings where sender_id=${req.userId} and receiver_type='A'`)
+    if (!customer) {
+        return res.status(200).json({
+            err: "Can't find request data!"
+        })
+    }
+
+
+    let total_page = await sequelize.query(`select count(*) from requests where receiver_id=${req.userId}`)
     total_page = Math.ceil(total_page[0][0].count / 8)
 
     return res.status(200).json({
-        data: booking_data[0],
+        data: customer[0],
         total_page: total_page,
         err: null
     })
 }
 
-exports.update_booking_agency = async (req, res, next) => {
-    const req_booking = await bookingModel.findOne({
-        where: {
-            id: req.body.booking_id
-        }
-    })
+exports.get_request_customer = async (req, res) => {
+    let request = await sequelize.query(`
+        select r.*, g.id as guides_id, g.username as guides_name, g.image as guides_image, g.email as guides_email
+        from requests r
+        inner join guides g on r.receiver_id=g.id
+        where sender_id=${req.userId} and sender_type='${req.body.type}'
+    `)
 
-    if (!req_booking) {
+    if (!request) {
         return res.status(200).json({
-            err: "Can't find Bookings data!"
+            err: "Can't find request data!"
         })
     }
 
-    if (req.body.action === 'update') {
-        req_booking.is_active = 1
-        await req_booking.save()
+    return res.status(200).json({
+        data: request[0],
+        err: null
+    })
+}
+
+// ANCHOR Update Request
+
+exports.update_request = async (req, res, next) => {
+    const request = await requestModel.findOne({
+        where: {
+            id: req.body.request_id
+        }
+    })
+    if (!request) {
+        return res.status(200).json({ err: 'Request not found!' })
     }
-    else {
-        await req_booking.destroy();
+
+    if (req.body.action === 'update') {
+        if (!request.is_approve) request.is_approve = true
+        else if (request.is_approve && !request.is_payed) request.is_payed = true
+        else if (request.is_approve && request.is_payed && !request.is_active) request.is_active = true
+        else {
+            return res.status(200).json({ err: 'Invalid request data!' })
+        }
+
+        await request.save()
+    } else if (req.body.action === 'delete') {
+        await request.destroy()
+    } else {
+        return res.status(200).json({ err: 'Error method!' })
     }
 
     return res.status(200).json({
@@ -79,9 +108,6 @@ exports.update_booking_agency = async (req, res, next) => {
         err: null
     })
 }
-
-
-
 
 exports.get_booking_user = async (req, res, next) => {
     let offset, limit
@@ -111,6 +137,69 @@ exports.get_booking_user = async (req, res, next) => {
     return res.status(200).json({
         data: sender_data[0],
         total_page: total_page,
+        err: null
+    })
+}
+
+// ANCHOR Get Booking
+
+exports.get_booking_agency = async (req, res, next) => {
+    let offset, limit
+    if (req.body.is_mobile) {
+        offset = 0
+        limit = req.body.page * 8
+    } else {
+        offset = (req.body.page - 1) * 8
+        limit = 8
+    }
+
+    let booking_data = await sequelize.query(`
+        select b.*, 
+        taa.id as ads_id, taa.title as ads_title, taa.image as ads_image, taa.cost as ads_price, taa.start_date as ads_start_date,
+        u.id as user_id, u.username as user_username, u.email as user_email, u.phone as user_phone, a.username as agency_username
+        from bookings b
+        inner join tours_agency_ads taa on b.tours_id=taa.id
+        inner join users u on b.sender_id = u.id
+        inner join agency a on a.id=b.receiver_id
+        where b.receiver_id=${req.userId} and b.receiver_type='A'
+        limit ${limit} offset ${offset}
+    `)
+
+    let total_page = await sequelize.query(`select count(*) from bookings where sender_id=${req.userId} and receiver_type='A'`)
+    total_page = Math.ceil(total_page[0][0].count / 8)
+
+    return res.status(200).json({
+        data: booking_data[0],
+        total_page: total_page,
+        err: null
+    })
+}
+
+// ANCHOR Update Bookings
+
+exports.update_booking_agency = async (req, res, next) => {
+    const req_booking = await bookingModel.findOne({
+        where: {
+            id: req.body.booking_id
+        }
+    })
+
+    if (!req_booking) {
+        return res.status(200).json({
+            err: "Can't find Bookings data!"
+        })
+    }
+
+    if (req.body.action === 'update') {
+        req_booking.is_active = 1
+        await req_booking.save()
+    }
+    else {
+        await req_booking.destroy();
+    }
+
+    return res.status(200).json({
+        msg: "Success",
         err: null
     })
 }

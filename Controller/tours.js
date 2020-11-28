@@ -25,25 +25,31 @@ exports.get_tours_guides = async (req, res, next) => {
         limit = 12
     }
 
-    let tours = await sequelize.query(`
+    const filter_query = req.body.input && req.body.input !== '' ?
+        ` where lower(username) like '%${req.body.input.toLowerCase()}%'`
+        :
+        ''
+
+    let guides = await sequelize.query(`
         SELECT g.id,g.username,g.cost,g.rating,g.total_tours,g.image,c.name as country
         FROM guides g 
         JOIN countries c on g.country_id=c.id
+        ${filter_query}
         Limit ${limit} offset ${offset}     
     `)
-    let total_page = await sequelize.query(`select count(*) from guides`)
+    let total_page = await sequelize.query(`select count(*) from guides ${filter_query}`)
 
     total_page = Math.ceil(total_page[0][0].count / 12)
-    tours = tours[0]
+    guides = guides[0]
 
     return res.status(200).json({
-        tours: tours,
+        guides: guides,
         total_page: total_page,
         err: null
     })
 }
 
-exports.get_tours_agency = async (req, res, next) => {    
+exports.get_tours_agency = async (req, res, next) => {
     let offset, limit
     if (req.body.is_mobile) {
         offset = 0
@@ -53,36 +59,47 @@ exports.get_tours_agency = async (req, res, next) => {
         limit = 12
     }
 
+    const filter_query = req.body.input && req.body.input !== '' ?
+        ` where lower(title) like '%${req.body.input.toLowerCase()}%'`
+        :
+        ''
 
     let tours = await sequelize.query(`
         SELECT t.id,t.title,t.cost, t.start_date, t.rating,t.image, a.id as agencyId,a.username
         FROM tours_agency_ads t 
         JOIN agency a on t."agencyId"=a.id
+        ${filter_query}
         limit ${limit} offset ${offset}                  
     `)
     tours = tours[0]
 
-    let destQuery = `select d.tours_id, c.name
-        from destinations d
-        join cities c on d.city_id=c.id
-        where d."isGuides" = false and (  
-    `
+    if (tours.length > 0) {
+        let destQuery = `
+            select d.tours_id, c.name
+            from destinations d
+            join cities c on d.city_id=c.id
+            where d."isGuides" = false and (  
+        `
 
-    tours.map((t, i) => {
-        destQuery += i < tours.length - 1 ?
-            `d.tours_id=${t.id} or `
-            :
-            `d.tours_id=${t.id})`
-    })
+        tours.map((t, i) => {
+            destQuery += i < tours.length - 1 ?
+                `d.tours_id=${t.id} or `
+                :
+                `d.tours_id=${t.id})`
+        })
 
-    let destination = await sequelize.query(destQuery)
-    destination = destination[0]
+        let destination = await sequelize.query(destQuery)
+        destination = destination[0]
 
-    tours = matchObjects(tours, destination)
+        tours = matchObjects(tours, destination)
+    } else {
+        return res.status(200).json({
+            err: `No result!`
+        })
+    }
 
-    let total_page = await sequelize.query(`select count(*) from tours_agency_ads`)
+    let total_page = await sequelize.query(`select count(*) from tours_agency_ads ${filter_query}`)
     total_page = Math.ceil(total_page[0][0].count / 12)
-
 
     return res.status(200).json({
         tours: tours,
@@ -92,13 +109,15 @@ exports.get_tours_agency = async (req, res, next) => {
 }
 
 exports.get_tours_guides_detail = async (req, res, next) => {
-    const product = await sequelize.query(`
-        SELECT t.*, g.username, g.image as guides_images
-        FROM tours_guides_ads t
-        JOIN guides g on g.id=t."guideId"
-        where t.id=${req.body.id};
-    `)
-
+    let guides = await sequelize.query(`
+        SELECT g.*, c.iso3 as country, c2.name as city
+        FROM guides g        
+        left join countries c on c.id=g.country_id
+        left join cities c2 on c2.id=g.city_id           
+        where g.id=${req.body.id};
+   `)
+    guides = guides[0][0]
+    guides.password = null
 
     // const comment = await sequelize.query(`
     //     SELECT p.id,c.comment,c.rating,u.username,u.image
@@ -106,11 +125,10 @@ exports.get_tours_guides_detail = async (req, res, next) => {
     //     JOIN comments c on p.id=c.product_id
     //     JOIN users u on u.id=c.sender_id
     //     where p.id=${req.body.id};
-    // `)
+    // `)    
 
     return res.status(200).json({
-        product: product[0],
-        // comment: comment[0],
+        guides: guides,
         err: null
     })
 }
@@ -391,28 +409,26 @@ exports.delete_tours = async (req, res, next) => {
 
 
 exports.request_to_seller = async (req, res, next) => {
-    // if (req.body.sender_id === req.body.receiver_id) {
-    //     return res.status(200).json({
-    //         err: "You're the owner of this!"
-    //     })
-    // }
-
     const check = await requestModel.findOne({
         where: {
             sender_id: req.body.sender_id,
-            tours_id: req.body.tours_id
+            receiver_id: req.body.receiver_id,
+            sender_type: req.body.sender_type
         }
     })
 
     if (check) {
         return res.status(200).json({
-            err: "You already requset for this!"
+            err: "You already request this guides!"
         })
     }
 
-    req.body.offers_price = parseFloat(req.body.offers_price)
+    req.body.is_approve = false
+    req.body.is_payed = false
+    req.body.is_active = false
 
     const request = await requestModel.create(req.body)
+
     if (!request) {
         return res.status(200).json({
             err: "Cant add request!"
