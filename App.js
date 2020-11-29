@@ -27,6 +27,7 @@ const commentModel = require('./Models/comment')
 const boookingModel = require('./Models/booking')
 const chatModel = require('./Models/chats')
 const destinationModel = require('./Models/destination')
+const lastChatModel= require('./Models/chats_last')
 
 
 // Start Code
@@ -55,8 +56,7 @@ const filestorage = multer.diskStorage({
     }
 })
 
-const filefilter = (req, file, cb) => {
-    console.log("b")
+const filefilter = (req, file, cb) => {    
     const ext = file.mimetype.split('/')[1]
     if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
         cb(null, true)

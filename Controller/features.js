@@ -1,5 +1,7 @@
 const sequelize = require('../config/sequelize')
+const { Op } = require('sequelize')
 const chatsModel = require('../Models/chats')
+const lastChatsModel = require('../Models/chats_last')
 
 exports.getUserLocation = async (req, res, next) => {
     let receiver
@@ -10,7 +12,7 @@ exports.getUserLocation = async (req, res, next) => {
     } else {
         receiver = 'agency'
     }
-    const type_code=receiver[0].toUpperCase()        
+    const type_code = receiver[0].toUpperCase()
 
     let user_data = await sequelize.query(`
         (
@@ -41,7 +43,7 @@ exports.getUserLocation = async (req, res, next) => {
     })
 }
 
-exports.updateUserLocation = async (req, res, next) => {    
+exports.updateUserLocation = async (req, res, next) => {
     let user = await req.userModel.findOne({
         where: {
             id: req.userId
@@ -81,6 +83,24 @@ exports.chatsPerson = async (req, res, next) => {
         receiver_code = ['U', 'A']
     }
 
+    let friend_list=await sequelize.query(`
+    (
+        select x.id,x.username,x.image,cl.content
+        from users x
+        inner join chats_lasts cl on 
+            (cl.sender_id=x.id and cl.sender_type='${req.typeCode}' and cl.receiver_type='${receiver_code[0]}') or
+            (cl.sender_type='${receiver_code[0]}' and cl.receiver_id=x.id and cl.receiver_type='${req.typeCode}')
+    )
+    union all
+    (
+        select x.id,x.username,x.image,cl.content
+        from users x
+        inner join chats_lasts cl on 
+            (cl.sender_id=x.id and cl.sender_type='${req.typeCode}' and cl.receiver_type='${receiver_code[1]}') or
+            (cl.sender_type='${receiver_code[1]}' and cl.receiver_id=x.id and cl.receiver_type='${req.typeCode}')
+    )
+    `)
+
     let friend = await sequelize.query(`        
         (select x.id,x.username,x.image, '${receiver_code[0]}' as type from ${receiver_list[0]} x,(
             SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
@@ -96,8 +116,7 @@ exports.chatsPerson = async (req, res, next) => {
         ) as chats
         where chats.sender_id=y.id) 
     `)
-
-    friend = friend[0]
+    friend = friend[0]    
 
     for (let i = 0; i < friend.length; i++) {
         if (i === friend.length - 1) {
@@ -169,6 +188,38 @@ exports.chatsData = async (req, res, next) => {
 exports.chatsSend = async (req, res, next) => {
     req.body.sender_id = req.userId
     req.body.sender_type = req.typeCode
+
+    let last_chat = await lastChatsModel.findOne({
+        where: {
+            sender_id: req.body.sender_id,
+            [Op.or]: [
+                {
+                    [Op.and]: {
+                        sender_id: req.body.sender_id,
+                        sender_type: req.body.sender_type,
+                        receiver_id: req.body.receiver_id,
+                        receiver_type: req.body.receiver_type,
+                    }
+                },
+                {
+                    [Op.and]: {
+                        sender_id: req.body.receiver_id,
+                        sender_type: req.body.receiver_type,
+                        receiver_id: req.body.sender_id,
+                        receiver_type: req.body.sender_type,
+                    }
+                }
+            ]
+        }
+    })
+
+    if (!last_chat) {
+        await lastChatsModel.create(req.body)
+    }else{
+        last_chat.content = req.body.content
+        await last_chat.save()
+    }
+
     const post_chat = await chatsModel.create(req.body);
 
     if (!post_chat) {

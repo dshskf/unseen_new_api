@@ -33,10 +33,11 @@ exports.get_tours_guides = async (req, res, next) => {
     let guides = await sequelize.query(`
         SELECT g.id,g.username,g.cost,g.rating,g.total_tours,g.image,c.name as country
         FROM guides g 
-        JOIN countries c on g.country_id=c.id
+        INNER JOIN countries c on g.country_id=c.id
         ${filter_query}
         Limit ${limit} offset ${offset}     
     `)
+
     let total_page = await sequelize.query(`select count(*) from guides ${filter_query}`)
 
     total_page = Math.ceil(total_page[0][0].count / 12)
