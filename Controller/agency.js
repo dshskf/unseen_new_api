@@ -57,7 +57,7 @@ exports.getEdit = async (req, res, next) => {
     })
 }
 
-exports.postEdit = async (req, res, next) => {
+exports.postEdit = async (req, res, next) => {    
     const userId = req.userId
     const user = await agencyModel.findOne({
         where: {
@@ -82,12 +82,13 @@ exports.postEdit = async (req, res, next) => {
     user.country_id = parseInt(req.body.country)
     user.state_id = parseInt(req.body.state)
     user.city_id = parseInt(req.body.city)
+    
 
     if (req.files[0]) {
         user.image = req.files[0].path
     }
 
-    const update_user = user.save()
+    const update_user = await user.save()
 
     if (!update_user) {
         return res.status(200).json({

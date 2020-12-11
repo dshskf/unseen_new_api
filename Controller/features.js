@@ -69,7 +69,6 @@ exports.updateUserLocation = async (req, res, next) => {
 }
 
 exports.chatsPerson = async (req, res, next) => {
-    let last_message_query = ''
     let receiver_list, receiver_code
 
     if (req.typeCode === 'U') {
@@ -83,100 +82,69 @@ exports.chatsPerson = async (req, res, next) => {
         receiver_code = ['U', 'A']
     }
 
-    let friend_list=await sequelize.query(`
+    let friends = await sequelize.query(`
     (
-        select x.id,x.username,x.image,cl.content
-        from users x
+        select distinct on(x.id) x.id,x.username,x.image, '${receiver_code[0]}' as type, cl.content
+        from ${receiver_list[0]} x
         inner join chats_lasts cl on 
-            (cl.sender_id=x.id and cl.sender_type='${req.typeCode}' and cl.receiver_type='${receiver_code[0]}') or
-            (cl.sender_type='${receiver_code[0]}' and cl.receiver_id=x.id and cl.receiver_type='${req.typeCode}')
+            (cl.sender_id=x.id and cl.sender_type='${receiver_code[0]}' and cl.receiver_id=${req.userId} and cl.receiver_type='${req.typeCode}') or
+            (cl.sender_type='${req.typeCode}' and cl.sender_id=${req.userId} and cl.receiver_id=x.id and cl.receiver_type='${receiver_code[0]}')
     )
     union all
     (
-        select x.id,x.username,x.image,cl.content
-        from users x
+        select distinct on(x.id) x.id,x.username,x.image,'${receiver_code[1]}' as type, cl.content
+        from ${receiver_list[1]} x
         inner join chats_lasts cl on 
-            (cl.sender_id=x.id and cl.sender_type='${req.typeCode}' and cl.receiver_type='${receiver_code[1]}') or
-            (cl.sender_type='${receiver_code[1]}' and cl.receiver_id=x.id and cl.receiver_type='${req.typeCode}')
+            (cl.sender_id=x.id and cl.sender_type='${receiver_code[1]}' and cl.receiver_id=${req.userId} and cl.receiver_type='${req.typeCode}') or
+            (cl.sender_type='${req.typeCode}' and cl.sender_id=${req.userId} and cl.receiver_id=x.id and cl.receiver_type='${receiver_code[1]}')
     )
     `)
-
-    let friend = await sequelize.query(`        
-        (select x.id,x.username,x.image, '${receiver_code[0]}' as type from ${receiver_list[0]} x,(
-            SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
-            where receiver_id=${req.userId} and sender_type<>'${req.typeCode}' and sender_type<>'${receiver_code[1]}'
-            ORDER BY sender_id
-        ) as chats
-        where chats.sender_id=x.id)
-	    union all
-		(select y.id,y.username,y.image, '${receiver_code[1]}' as type from ${receiver_list[1]} y,(
-            SELECT DISTINCT ON (receiver_id,sender_id) * FROM chats
-            where receiver_id=${req.userId} and sender_type<>'${req.typeCode}' and sender_type<>'${receiver_code[0]}'
-            ORDER BY sender_id
-        ) as chats
-        where chats.sender_id=y.id) 
-    `)
-    friend = friend[0]    
-
-    for (let i = 0; i < friend.length; i++) {
-        if (i === friend.length - 1) {
-            last_message_query += `(
-                SELECT * FROM chats
-                where sender_id=${friend[i].id} and receiver_id=${req.userId} and sender_type='${friend[i].type}' or 
-                sender_id=${req.userId} and receiver_id=${friend[i].id} and receiver_type='${friend[i].type}'                 
-                ORDER BY "createdAt" desc
-                limit 1
-            )`
-        } else {
-            last_message_query += `(
-                SELECT * FROM chats
-                where sender_id=${friend[i].id} and receiver_id=${req.userId} and sender_type='${friend[i].type}' or 
-                sender_id=${req.userId} and receiver_id=${friend[i].id} and receiver_type='${friend[i].type}'                 
-                ORDER BY "createdAt" desc
-                limit 1
-            ) UNION ALL `
-        }
-    }
-
-    let last_message = await sequelize.query(last_message_query)
-    last_message = last_message[0]
+    friends = friends[0]
 
     return res.status(200).json({
-        data: friend,
-        last_message: last_message,
+        data: friends,
         err: null
     })
 }
 
 exports.chatsData = async (req, res, next) => {
-    const tours_data_query = req.body.tours_type === 'A' ?
-        `select c.*, taa.title as tours_title, taa.image as tours_image, taa.cost as tours_cost
-        from chats c 
-        left join tours_agency_ads taa on taa.id=c.tours_id `
-        :
-        `select c.*, tga.title as tours_title, tga.image as tours_image, tga.cost as tours_cost
-        from chats c 
-        left join tours_guides_ads tga on tga.id=c.tours_id `
+    let tours_data_query
+console.log(req.body)
+    // If user then change to the sender_type
+    if (req.body.receiver_type === 'U') {
+        req.body.tours_type = req.body.sender_type
+    }
+
+    if (req.body.tours_type === 'A') {
+        tours_data_query = `
+            select c.*, taa.title as tours_title, taa.image as tours_image, taa.cost as tours_cost
+            from chats c 
+            left join tours_agency_ads taa on taa.id=c.tours_id             
+        `
+    } else {
+        tours_data_query = `
+            select c.*
+            from chats c 
+        `
+    }
 
     const msg = await sequelize.query(`
-    ${tours_data_query}
-    where 
-        (c.sender_id=${req.userId} AND c.receiver_id= ${req.body.receiver_id}) and (c.sender_type='${req.typeCode}' or c.receiver_type='${req.body.receiver_type}')
-    OR
-        (c.sender_id=${req.body.receiver_id} AND c.receiver_id= ${req.userId}) and (c.sender_type='${req.body.receiver_type}' or c.receiver_type='${req.typeCode}');
+        ${tours_data_query}
+        where 
+            (c.sender_id=${req.userId} and c.sender_type='${req.typeCode}' and c.receiver_id= ${req.body.receiver_id} and c.receiver_type='${req.body.receiver_type}')
+            OR
+            (c.sender_id=${req.body.receiver_id} and c.sender_type='${req.body.receiver_type}' and c.receiver_id= ${req.userId} and c.receiver_type='${req.typeCode}')
+        order by c."createdAt"
     `)
 
-    // for (let i = 0; i < msg[0].length; i++) {
-    //     if (msg[0][i].notification) {
-    //         const products = await productModel.findOne({
-    //             where: {
-    //                 id: msg[0][i].notification
-    //             }
-    //         })
-
-    //         msg[0][i].prod_data = products
-    //     }
-    // }
+    console.log(`
+${tours_data_query}
+where 
+    (c.sender_id=${req.userId} and c.sender_type='${req.typeCode}' and c.receiver_id= ${req.body.receiver_id} and c.receiver_type='${req.body.receiver_type}')
+    OR
+    (c.sender_id=${req.body.receiver_id} and c.sender_type='${req.body.receiver_type}' and c.receiver_id= ${req.userId} and c.receiver_type='${req.typeCode}')
+order by c."createdAt"
+`)
 
     return res.status(200).json({
         data: msg[0],
@@ -191,7 +159,6 @@ exports.chatsSend = async (req, res, next) => {
 
     let last_chat = await lastChatsModel.findOne({
         where: {
-            sender_id: req.body.sender_id,
             [Op.or]: [
                 {
                     [Op.and]: {
@@ -215,7 +182,7 @@ exports.chatsSend = async (req, res, next) => {
 
     if (!last_chat) {
         await lastChatsModel.create(req.body)
-    }else{
+    } else {
         last_chat.content = req.body.content
         await last_chat.save()
     }
