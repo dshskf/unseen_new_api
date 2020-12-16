@@ -3,33 +3,58 @@ const { Op } = require('sequelize')
 const chatsModel = require('../Models/chats')
 const lastChatsModel = require('../Models/chats_last')
 
-exports.getUserLocation = async (req, res, next) => {
-    let receiver
-    if (req.body.receiver_type === 'A') {
-        receiver = 'agency'
-    } else if (req.body.receiver_type === 'G') {
-        receiver = 'guides'
-    } else {
-        receiver = 'agency'
+exports.getUserLocation = async (req, res, next) => {   
+    let user_data = null
+    if (req.body.reqType === 'bookings') {
+        user_data = await sequelize.query(`
+            (
+                select x.id,x.username,x.image,x.phone,x.lat,x.lng, 'A' as type 
+                from agency x
+                inner join (
+                    select receiver_id from bookings where id= ${req.body.id} limit 1
+                ) req on x.id=req.receiver_id 
+                limit 1
+            )
+            union all
+            (
+                select x.id,x.username,x.image,x.phone,x.lat,x.lng, 'U' as type 
+                from users x
+                inner join (
+                    select sender_id from bookings where id= ${req.body.id} limit 1
+                ) req on x.id=req.sender_id 
+                limit 1
+            )
+        `)
+    } else if (req.body.reqType === 'requests') {
+        user_data = await sequelize.query(`
+            (
+                select id,username,image,phone,lat,lng, 'G' as type 
+                from guides x
+                inner join (
+                    select receiver_id from requests where id=${req.body.id} limit 1
+                ) req on id=req.receiver_id 
+                limit 1
+            )
+            union all
+            (
+                select id,username,image,phone,lat,lng, 'U' as type 
+                from users x
+                inner join (
+                    select sender_id,sender_type from requests where id=${req.body.id} limit 1
+                ) req on id=req.sender_id and req.sender_type='U'
+                limit 1
+            )
+            union all
+            (
+                select id,username,image,phone,lat,lng, 'A' as type 
+                from agency x
+                inner join (
+                    select sender_id,sender_type from requests where id=${req.body.id} limit 1
+                ) req on id=req.sender_id and req.sender_type='A'
+                limit 1
+            )
+        `)
     }
-    const type_code = receiver[0].toUpperCase()
-
-    let user_data = await sequelize.query(`
-        (
-            select a.id,a.username,a.image,a.phone,a.lat,a.lng,'${type_code}' as type
-            from ${receiver} a 		
-            inner join bookings b on a.id=b.receiver_id		     
-            where b.id=${req.body.booking_id}
-        )
-        union all
-        (
-            select u.id,u.username,u.image,u.phone,u.lat,u.lng,'U' as type
-            from users u
-            inner join bookings b on u.id=b.sender_id		            
-            where b.id=${req.body.booking_id}
-        )
-    `)
-
 
     if (!user_data) {
         return res.status(200).json({
@@ -109,7 +134,7 @@ exports.chatsPerson = async (req, res, next) => {
 
 exports.chatsData = async (req, res, next) => {
     let tours_data_query
-console.log(req.body)
+
     // If user then change to the sender_type
     if (req.body.receiver_type === 'U') {
         req.body.tours_type = req.body.sender_type
@@ -136,15 +161,6 @@ console.log(req.body)
             (c.sender_id=${req.body.receiver_id} and c.sender_type='${req.body.receiver_type}' and c.receiver_id= ${req.userId} and c.receiver_type='${req.typeCode}')
         order by c."createdAt"
     `)
-
-    console.log(`
-${tours_data_query}
-where 
-    (c.sender_id=${req.userId} and c.sender_type='${req.typeCode}' and c.receiver_id= ${req.body.receiver_id} and c.receiver_type='${req.body.receiver_type}')
-    OR
-    (c.sender_id=${req.body.receiver_id} and c.sender_type='${req.body.receiver_type}' and c.receiver_id= ${req.userId} and c.receiver_type='${req.typeCode}')
-order by c."createdAt"
-`)
 
     return res.status(200).json({
         data: msg[0],

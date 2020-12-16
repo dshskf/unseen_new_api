@@ -63,37 +63,25 @@ exports.get_tours_agency = async (req, res, next) => {
     const filter_query = req.body.input && req.body.input !== '' ?
         ` where lower(title) like '%${req.body.input.toLowerCase()}%'`
         :
-        ''
+        ''    
 
     let tours = await sequelize.query(`
-        SELECT t.id,t.title,t.cost, t.start_date, t.rating,t.image, a.id as agencyId,a.username
-        FROM tours_agency_ads t 
-        JOIN agency a on t."agencyId"=a.id
-        ${filter_query}
-        limit ${limit} offset ${offset}                  
+        select d.tours_id as id, string_agg(''||c.name||'',',') as city, tours.title,tours.cost, tours.start_date, tours.rating,tours.image, tours.agencyId,tours.username
+        from destinations d
+        inner join cities c on d.city_id=c.id
+        inner join(
+            SELECT t.id,t.title,t.cost, t.start_date, t.rating,t.image, a.id as agencyId,a.username
+            FROM tours_agency_ads t
+            INNER JOIN agency a on t."agencyId"=a.id
+            ${filter_query}
+        ) tours on tours.id=d.tours_id
+        group by d.tours_id, tours.title,tours.cost, tours.start_date, tours.rating,tours.image, tours.agencyId,tours.username
+        order by d.tours_id
+        limit ${limit} offset ${offset}  
     `)
     tours = tours[0]
 
-    if (tours.length > 0) {
-        let destQuery = `
-            select d.tours_id, c.name
-            from destinations d
-            join cities c on d.city_id=c.id
-            where d."isGuides" = false and (  
-        `
-
-        tours.map((t, i) => {
-            destQuery += i < tours.length - 1 ?
-                `d.tours_id=${t.id} or `
-                :
-                `d.tours_id=${t.id})`
-        })
-
-        let destination = await sequelize.query(destQuery)
-        destination = destination[0]
-
-        tours = matchObjects(tours, destination)
-    } else {
+    if (tours.length <= 0) {
         return res.status(200).json({
             err: `No result!`
         })
@@ -136,7 +124,7 @@ exports.get_tours_guides_detail = async (req, res, next) => {
 
 exports.get_tours_agency_detail = async (req, res, next) => {
     const tours = await sequelize.query(`
-        SELECT t.*, a.username, a.image as agency_images, c.name as city_name
+        SELECT t.*, a.username, a.image as agency_images, c.name as city_name, d.period
         FROM tours_agency_ads t
         inner JOIN agency a on a.id=t."agencyId"
         inner join destinations d on d.tours_id=t.id
@@ -144,8 +132,7 @@ exports.get_tours_agency_detail = async (req, res, next) => {
         where t.id=${req.body.id};
     `)
 
-
-
+    
     // const comment = await sequelize.query(`
     //     SELECT p.id,c.comment,c.rating,u.username,u.image
     //     FROM products p
