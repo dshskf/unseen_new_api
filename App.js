@@ -104,7 +104,7 @@ toursAgency.belongsTo(agencyModel, {
 DbCon.sync()
     .then(() => {
         server.listen(1234, () => {
-            console.log("Server running...")
+            console.log("Server running on port 1234")
         })
     })
     .catch(err => console.log(err))
@@ -114,11 +114,11 @@ DbCon.sync()
 io.origins('*:*')
 
 io.on('connection', (socket) => {
-    socket.on('join_room', data => {
+    socket.on('join_room', data => {        
         socket.join(data.room_id)
     })
 
-    socket.on('msg', data => {
+    socket.on('msg', data => {        
         let receiver = data.receiver_id + "-" + data.receiver_type
         socket.broadcast.to(receiver).emit('msg_response', data)
     })

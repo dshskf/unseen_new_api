@@ -26,10 +26,16 @@ const bookings = db.define('bookings', {
     is_active: {
         type: sequelize.BOOLEAN
     },
-    receiver_type: {
-        type: sequelize.CHAR(1),
-        allowNull: false
+    is_reviewed: {
+        type: sequelize.BOOLEAN,
+    },
+    guides_id: {
+        type: sequelize.INTEGER,
     }
+    // receiver_type: {
+    //     type: sequelize.CHAR(1),
+    //     allowNull: false
+    // }
 })
 
 module.exports = bookings

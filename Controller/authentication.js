@@ -170,6 +170,7 @@ exports.updateUserPassword = async (req, res, next) => {
         })
     }
 
+    user.repass_token = null
     user.password = await bcrypt.hash(req.body.password, 10)
     await user.save()
 

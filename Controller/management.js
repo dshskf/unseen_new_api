@@ -70,8 +70,12 @@ exports.get_request_customer = async (req, res) => {
         })
     }
 
+    let total_page = await sequelize.query(`select count(*) from requests where receiver_id=${req.userId}`)
+    total_page = Math.ceil(total_page[0][0].count / 8)
+    
     return res.status(200).json({
         data: request[0],
+        total_page: total_page,
         err: null
     })
 }
@@ -122,16 +126,16 @@ exports.get_booking_user = async (req, res, next) => {
     let sender_data = await sequelize.query(`
         select b.*, 
         taa.id as ads_id, taa.title as ads_title, taa.image as ads_image, taa.cost as ads_price, taa.start_date as ads_start_date,
-        a.id as agency_id, a.username as agency_username, a.rating as agency_rating,u.username as user_username
+        taa.end_date as ads_end_date, a.id as agency_id, a.username as agency_username, a.rating as agency_rating,u.username as user_username
         from bookings b
         inner join tours_agency_ads taa on b.tours_id=taa.id
         inner join agency a on b.receiver_id = a.id
         inner join users u on u.id=b.sender_id
-        where b.sender_id=${req.userId} and b.receiver_type='A'
+        where b.sender_id=${req.userId}
         limit ${limit} offset ${offset}
     `)
 
-    let total_page = await sequelize.query(`select count(*) from bookings where sender_id=${req.userId} and receiver_type='A'`)
+    let total_page = await sequelize.query(`select count(*) from bookings where sender_id=${req.userId}`)
     total_page = Math.ceil(total_page[0][0].count / 8)
 
     return res.status(200).json({
@@ -156,16 +160,16 @@ exports.get_booking_agency = async (req, res, next) => {
     let booking_data = await sequelize.query(`
         select b.*, 
         taa.id as ads_id, taa.title as ads_title, taa.image as ads_image, taa.cost as ads_price, taa.start_date as ads_start_date,
-        u.id as user_id, u.username as user_username, u.email as user_email, u.phone as user_phone, a.username as agency_username
+        taa.end_date as ads_end_date, u.id as user_id, u.username as user_username, u.email as user_email, u.phone as user_phone, a.username as agency_username
         from bookings b
         inner join tours_agency_ads taa on b.tours_id=taa.id
         inner join users u on b.sender_id = u.id
-        inner join agency a on a.id=b.receiver_id
-        where b.receiver_id=${req.userId} and b.receiver_type='A'
+        inner join agency a on a.id = b.receiver_id
+        where b.receiver_id=${req.userId}
         limit ${limit} offset ${offset}
     `)
 
-    let total_page = await sequelize.query(`select count(*) from bookings where sender_id=${req.userId} and receiver_type='A'`)
+    let total_page = await sequelize.query(`select count(*) from bookings where sender_id=${req.userId}`)
     total_page = Math.ceil(total_page[0][0].count / 8)
 
     return res.status(200).json({

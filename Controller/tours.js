@@ -2,6 +2,8 @@ const toursAgencyModel = require('../Models/tours-agency')
 const toursGuidesModel = require('../Models/tours-guides')
 const bookingModel = require('../Models/booking')
 const requestModel = require('../Models/request')
+const agencyModel = require('../Models/agency')
+const guidesModel = require('../Models/guides')
 const sequelize = require('../config/sequelize')
 const fs = require('fs')
 
@@ -19,10 +21,10 @@ exports.get_tours_guides = async (req, res, next) => {
     let offset, limit
     if (req.body.is_mobile) {
         offset = 0
-        limit = req.body.page * 12
+        limit = req.body.page * 15
     } else {
-        offset = (req.body.page - 1) * 12
-        limit = 12
+        offset = (req.body.page - 1) * 15
+        limit = 15
     }
 
     const filter_query = req.body.input && req.body.input !== '' ?
@@ -40,7 +42,12 @@ exports.get_tours_guides = async (req, res, next) => {
 
     let total_page = await sequelize.query(`select count(*) from guides ${filter_query}`)
 
-    total_page = Math.ceil(total_page[0][0].count / 12)
+    if (total_page[0][0].count % 15 === 0) {
+        total_page = Math.floor(total_page[0][0].count / 15)
+    } else {
+        total_page = Math.ceil(total_page[0][0].count / 15)
+    }
+
     guides = guides[0]
 
     return res.status(200).json({
@@ -63,7 +70,7 @@ exports.get_tours_agency = async (req, res, next) => {
     const filter_query = req.body.input && req.body.input !== '' ?
         ` where lower(title) like '%${req.body.input.toLowerCase()}%'`
         :
-        ''    
+        ''
 
     let tours = await sequelize.query(`
         select d.tours_id as id, string_agg(''||c.name||'',',') as city, tours.title,tours.cost, tours.start_date, tours.rating,tours.image, tours.agencyId,tours.username
@@ -88,7 +95,13 @@ exports.get_tours_agency = async (req, res, next) => {
     }
 
     let total_page = await sequelize.query(`select count(*) from tours_agency_ads ${filter_query}`)
-    total_page = Math.ceil(total_page[0][0].count / 12)
+
+    if (total_page[0][0].count % 12 === 0) {
+        total_page = Math.floor(total_page[0][0].count / 12)
+    } else {
+        total_page = Math.ceil(total_page[0][0].count / 12)
+    }
+
 
     return res.status(200).json({
         tours: tours,
@@ -132,7 +145,7 @@ exports.get_tours_agency_detail = async (req, res, next) => {
         where t.id=${req.body.id};
     `)
 
-    
+
     // const comment = await sequelize.query(`
     //     SELECT p.id,c.comment,c.rating,u.username,u.image
     //     FROM products p
@@ -401,7 +414,8 @@ exports.request_to_seller = async (req, res, next) => {
         where: {
             sender_id: req.body.sender_id,
             receiver_id: req.body.receiver_id,
-            sender_type: req.body.sender_type
+            sender_type: req.body.sender_type,
+            is_reviewed: false
         }
     })
 
@@ -414,6 +428,9 @@ exports.request_to_seller = async (req, res, next) => {
     req.body.is_approve = false
     req.body.is_payed = false
     req.body.is_active = false
+    req.body.is_reviewed = false
+    req.body.start_date = new Date(req.body.start_date)
+    req.body.end_date = new Date(req.body.end_date)
 
     const request = await requestModel.create(req.body)
 
@@ -433,8 +450,7 @@ exports.booking_tours = async (req, res, next) => {
     const check = await bookingModel.findOne({
         where: {
             sender_id: req.body.sender_id,
-            tours_id: req.body.tours_id,
-            receiver_type: req.body.receiver_type
+            tours_id: req.body.tours_id
         }
     })
 
@@ -444,10 +460,163 @@ exports.booking_tours = async (req, res, next) => {
         })
     }
 
+
     const request = await bookingModel.create(req.body)
     if (!request) {
         return res.status(200).json({
             err: "Cant Books this tours!"
+        })
+    }
+
+    return res.status(200).json({
+        msg: "Success",
+        err: null
+    })
+}
+
+exports.get_booking_list = async (req, res, next) => {
+    let bookingList = await sequelize.query(`
+        select b.id, tga.id as tours_id, tga.title as tours_title, tga.start_date, tga.end_date,
+        u.id as user_id, u.username
+        from bookings b
+        inner join tours_agency_ads tga on b.tours_id=tga.id
+        inner join users u on u.id = b.sender_id
+        where b.receiver_id= ${req.userId} and b.guides_id is null and b.is_active = false and b.is_payed = true
+    `)
+
+    if (!bookingList || bookingList[0].length === 0) {
+        return res.status(200).json({
+            err: `No booking available!`
+        })
+    }
+    bookingList = bookingList[0]
+
+    return res.status(200).json({
+        msg: "Success",
+        data: bookingList,
+        err: null
+    })
+}
+
+exports.post_agency_request = async (req, res, next) => {
+    let request = await requestModel.findOne({
+        where: {
+            sender_id: req.body.sender_id,
+            sender_type: req.body.sender_type,
+            receiver_id: req.body.receiver_id
+        }
+    })
+
+
+    if (request) {
+        return res.status(200).json({
+            err: `You already request for this!`
+        })
+    }
+
+    let update = await sequelize.query(`
+        with update_bookings as(
+            update bookings set guides_id=${req.body.receiver_id}
+            where id=${req.body.booking_id} returning id
+        )
+        INSERT INTO requests(sender_id, sender_type, receiver_id, description, offers_price, 
+            bookings_id, start_date, end_date, is_approve, is_payed, is_active,is_reviewed, "createdAt", "updatedAt")
+        values(${req.body.sender_id},'${req.body.sender_type}',${req.body.receiver_id},'${req.body.description}', ${req.body.offers_price},
+        ${req.body.booking_id},'${req.body.start_date}', '${req.body.end_date}', false,false,false,false,now(),now()) returning id
+    `)
+
+    if (!update) {
+        return res.status(200).json({
+            err: `Can't Update!`
+        })
+    }
+
+    return res.status(200).json({
+        msg: "Success",
+        err: null
+    })
+}
+
+exports.send_comments_booking = async (req, res, next) => {
+    let agency = await agencyModel.findOne({
+        where: {
+            id: req.body.agency_id,
+        }
+    })
+
+    if (!agency) {
+        return res.status(200).json({
+            err: `Agency was missing!`
+        })
+    }
+
+    agency = agency.dataValues
+    const total_tours = agency.total_tours === null ? 1 : parseInt(agency.total_tours.toString()) + 1
+    const rating = agency.rating === null ? parseFloat(req.body.rating) : (parseFloat(agency.rating) + parseFloat(req.body.rating)) / parseFloat(total_tours)
+
+    const post = await sequelize.query(`
+        with insert_comment as (
+            insert into comments(sender_id,tours_id,comment,rating,"createdAt","updatedAt")
+            values(${req.body.sender_id},${req.body.tours_id},'${req.body.description}',${req.body.rating},now(),now())
+            returning id
+        ),
+        update_bookings as (
+            update bookings set is_reviewed=true where id=${req.body.booking_id} returning id
+        )
+
+        update agency set rating=${rating}, total_tours=${total_tours}
+        where id = ${req.body.agency_id}
+        returning id;
+    `)
+
+    if (!post) {
+        return res.status(200).json({
+            err: `Can't Send Comments!`
+        })
+    }
+
+    return res.status(200).json({
+        msg: "Success",
+        err: null
+    })
+}
+
+
+exports.send_comments_requests = async (req, res, next) => {
+    let guides = await guidesModel.findOne({
+        where: {
+            id: req.body.guides_id,
+        }
+    })
+
+    if (!guides) {
+        return res.status(200).json({
+            err: `guides was missing!`
+        })
+    }
+
+    guides = guides.dataValues
+    const total_tours = guides.total_tours === null ? 1 : parseInt(guides.total_tours.toString()) + 1
+    const rating = guides.rating === null ? parseFloat(req.body.rating) : (parseFloat(guides.rating) + parseFloat(req.body.rating)) / parseFloat(total_tours)
+
+    const post = await sequelize.query(`
+        with insert_comment as(
+            insert into comments(sender_id,guides_id,comment,rating,"createdAt","updatedAt")
+            values(${req.body.sender_id},${req.body.guides_id},'${req.body.description}',${req.body.rating},now(),now())
+            returning id            
+        ), 
+        update_req as (
+            update requests set is_reviewed=true where id=${req.body.request_id} returning id
+        )
+
+        update guides set rating=${rating}, total_tours=${total_tours}
+        where id = ${req.body.guides_id}
+        returning id;       
+    `)
+
+    if (!post) {
+        return res.status(200).json({
+            err: `Can't Send Comments!`
         })
     }
 

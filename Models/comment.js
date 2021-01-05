@@ -14,7 +14,6 @@ const comment = db.define('comments', {
     },
     tours_id: {
         type: sequelize.INTEGER,
-        allowNull: false
     },
     comment: {
         type: sequelize.TEXT,
@@ -23,6 +22,9 @@ const comment = db.define('comments', {
     rating: {
         type: sequelize.DECIMAL,
         allowNull: false
+    },
+    guides_id: {
+        type: sequelize.INTEGER,
     }
 
 })

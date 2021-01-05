@@ -38,10 +38,10 @@ const fillGuides = () => ({
     email: faker.internet.email(),
     password: faker.internet.password(),
     phone: faker.phone.phoneNumber(),
-    image: faker.image.imageUrl(),
+    image: faker.image.city(),
     rating: Math.floor(Math.random() * 5) + 1,
     cost: Math.floor(Math.random() * 10000) + 10,
-    country_id: Math.floor(Math.random() * 100) + 1,
+    country_id: Math.floor(Math.random() * 50) + 1,
     total_tours: Math.floor(Math.random() * 1000) + 10
 })
 
@@ -56,7 +56,7 @@ const fillToursAgency = (id) => ({
     start_date: faker.date.recent(),
     end_date: faker.date.recent(),
     isActive: faker.random.boolean(),
-    image: [faker.image.imageUrl(), faker.image.imageUrl()],
+    image: [faker.image.city(), faker.image.city()],
     quota_left: faker.random.number(),
     quota: faker.random.number(),
     agencyId: id,
@@ -91,36 +91,36 @@ const fillDestination = (id, bools) => ({
 
 
 router.get('/', async (req, res, next) => {
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 20; i++) {
         user = fillUser()
         agency = fillAgency()
         guides = fillGuides()
 
-        await userModel.create(user)
-        await agencyModel.create(agency)
+        // await userModel.create(user)
+        // await agencyModel.create(agency)
         await guidesModel.create(guides)
 
-        for (let j = 0; j < 3; j++) {
-            t_agency = fillToursAgency(agency.id)
-            t_guides = fillToursGuides(guides.id)
+        // for (let j = 0; j < 3; j++) {
+        //     t_agency = fillToursAgency(agency.id)
+        //     t_guides = fillToursGuides(guides.id)
 
-            await toursAgency.create(t_agency)
-            await toursGuides.create(t_guides)
+        //     await toursAgency.create(t_agency)
+        //     await toursGuides.create(t_guides)
 
-            for (let k = 0; k < 2; k++) {
-                dest_agency = fillDestination(t_agency.id, false)
-                dest_guides = fillDestination(t_guides.id, true)
+        //     for (let k = 0; k < 2; k++) {
+        //         dest_agency = fillDestination(t_agency.id, false)
+        //         dest_guides = fillDestination(t_guides.id, true)
 
-                await destinationModel.create(dest_agency)
-                await destinationModel.create(dest_guides)
+        //         await destinationModel.create(dest_agency)
+        //         await destinationModel.create(dest_guides)
 
-                dest_agency = fillDestination(t_guides.id, false)
-                dest_guides = fillDestination(t_agency.id, true)
+        //         dest_agency = fillDestination(t_guides.id, false)
+        //         dest_guides = fillDestination(t_agency.id, true)
 
-                await destinationModel.create(dest_agency)
-                await destinationModel.create(dest_guides)
-            }
-        }
+        //         await destinationModel.create(dest_agency)
+        //         await destinationModel.create(dest_guides)
+        //     }
+        // }
 
     }
 
@@ -128,5 +128,14 @@ router.get('/', async (req, res, next) => {
         status: "Filled!"
     })
 })
+
+const { guidesData } = require('./data')
+
+router.get('/fill', async (req, res, next) => {
+    return res.json({
+        guide: guidesData
+    })
+})
+
 
 module.exports = router

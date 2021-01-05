@@ -1,23 +1,41 @@
 const sequelize = require('../config/sequelize')
 const { Op } = require('sequelize')
 const chatsModel = require('../Models/chats')
+const guidesModel = require('../Models/guides')
 const lastChatsModel = require('../Models/chats_last')
 
-exports.getUserLocation = async (req, res, next) => {   
+exports.getUserLocation = async (req, res, next) => {
     let user_data = null
     if (req.body.reqType === 'bookings') {
+        let seller = {
+            table: 'agency',
+            type: 'A',
+            column: 'receiver_id'
+        }
+        const getGuides = await sequelize.query(`
+            select guides_id from bookings where id= ${req.body.id} limit 1
+        `)
+        if (getGuides[0][0].guides_id) {
+            seller = {
+                ...seller,
+                table: 'guides',
+                type: 'G',
+                column: 'guides_id',
+            }
+        }
+
         user_data = await sequelize.query(`
             (
-                select x.id,x.username,x.image,x.phone,x.lat,x.lng, 'A' as type 
-                from agency x
+                select x.id,x.username,x.image,x.phone,x.lat,x.lng, '${seller.type}' as type, req.receiver_id
+                from ${seller.table} x
                 inner join (
-                    select receiver_id from bookings where id= ${req.body.id} limit 1
-                ) req on x.id=req.receiver_id 
+                    select receiver_id,guides_id from bookings where id= ${req.body.id} limit 1
+                ) req on x.id=req.${seller.column}
                 limit 1
             )
             union all
             (
-                select x.id,x.username,x.image,x.phone,x.lat,x.lng, 'U' as type 
+                select x.id,x.username,x.image,x.phone,x.lat,x.lng, 'U' as type, null as receiver_id
                 from users x
                 inner join (
                     select sender_id from bookings where id= ${req.body.id} limit 1
@@ -26,7 +44,32 @@ exports.getUserLocation = async (req, res, next) => {
             )
         `)
     } else if (req.body.reqType === 'requests') {
-        user_data = await sequelize.query(`
+        const boolBooking = await sequelize.query(`
+            select bookings_id from requests where id=${req.body.id} limit 1
+        `)
+
+        if (boolBooking[0][0].bookings_id) { // if request from agency            
+            user_data = await sequelize.query(`
+                (
+                    select x.id,x.username,x.image,x.phone,x.lat,x.lng, 'G' as type, req.receiver_id, 'A' as receiver_type
+                    from guides x
+                    inner join (
+                        select receiver_id,guides_id from bookings where id= ${boolBooking[0][0].bookings_id} limit 1
+                    ) req on x.id=req.guides_id
+                    limit 1
+                )
+                union all
+                (
+                    select x.id,x.username,x.image,x.phone,x.lat,x.lng, 'U' as type, null as receiver_id, null as receiver_type
+                    from users x
+                    inner join (
+                        select sender_id from bookings where id= ${boolBooking[0][0].bookings_id} limit 1
+                    ) req on x.id=req.sender_id 
+                    limit 1
+                )
+            `)
+        } else {
+            user_data = await sequelize.query(`
             (
                 select id,username,image,phone,lat,lng, 'G' as type 
                 from guides x
@@ -54,6 +97,9 @@ exports.getUserLocation = async (req, res, next) => {
                 limit 1
             )
         `)
+        }
+
+
     }
 
     if (!user_data) {
@@ -69,6 +115,9 @@ exports.getUserLocation = async (req, res, next) => {
 }
 
 exports.updateUserLocation = async (req, res, next) => {
+    // const userId = req.body.guides_id ? req.body.guides_id : req.userId
+    // const model = req.body.guides_id ? guidesModel : req.userModel
+
     let user = await req.userModel.findOne({
         where: {
             id: req.userId

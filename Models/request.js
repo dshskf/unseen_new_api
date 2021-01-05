@@ -7,7 +7,7 @@ const request = db.define('request', {
         allowNull: false,
         primaryKey: true,
         autoIncrement: true
-    },   
+    },
     sender_id: {
         type: sequelize.INTEGER,
         allowNull: false
@@ -19,7 +19,10 @@ const request = db.define('request', {
     receiver_id: {
         type: sequelize.INTEGER,
         allowNull: false
-    },   
+    },
+    bookings_id: {
+        type: sequelize.INTEGER,
+    },
     description: {
         type: sequelize.TEXT,
         allowNull: false
@@ -57,6 +60,9 @@ const request = db.define('request', {
         type: sequelize.BOOLEAN,
         allowNull: false
     },
+    is_reviewed: {
+        type: sequelize.BOOLEAN,
+    }
 })
 
 module.exports = request

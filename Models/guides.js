@@ -60,6 +60,9 @@ const guides = db.define('guides', {
     certificated: {
         type: sequelize.BOOLEAN
     },
+    description: {
+        type: sequelize.STRING
+    },
     repass_token: {
         type: sequelize.STRING,
     },
