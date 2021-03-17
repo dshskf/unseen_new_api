@@ -9,7 +9,6 @@ module.exports = (req, res, next) => {
         })
     }
 
-
     const token = authData.split(" ")[1]
     let decodedToken
     try {

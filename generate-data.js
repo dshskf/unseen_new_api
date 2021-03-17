@@ -27,6 +27,9 @@ const fillAgency = () => ({
     username: faker.name.findName(),
     email: faker.internet.email(),
     password: faker.internet.password(),
+    rating: Math.floor(Math.random() * 5) + 1,
+    total_tours: Math.floor(Math.random() * 1000) + 10,
+    country_id: Math.floor(Math.random() * 50) + 1,
     phone: faker.phone.phoneNumber(),
     image: faker.image.imageUrl(),
     cost: faker.random.number()
@@ -96,8 +99,8 @@ router.get('/', async (req, res, next) => {
         agency = fillAgency()
         guides = fillGuides()
 
-        // await userModel.create(user)
-        // await agencyModel.create(agency)
+        await userModel.create(user)
+        await agencyModel.create(agency)
         await guidesModel.create(guides)
 
         // for (let j = 0; j < 3; j++) {

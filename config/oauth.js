@@ -1,14 +1,14 @@
 const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
-
+const dotenv = require("dotenv");
 
 /* -------------------------------------------------------------------------- */
 /*                        Oauth2.0 Email Initialization                       */
 /* -------------------------------------------------------------------------- */
 
-const clientId = "345438441281-j94hb2djdmf5dpc576f6es9lcd7p38pr.apps.googleusercontent.com"
-const clientSecret = "Fgld1E9FZKdXPqG1yx9ZzFVB"
-const refreshToken = "1//04xUD8SITN41JCgYIARAAGAQSNwF-L9Irz4YtAtaHXFrjOk5PtCWFX8sOl64w5GyloGtjox5cbbOFS8XjmDirLPB8Whpw9gFyyu4"
+const clientId = process.env.CLIENT_ID
+const clientSecret = process.env.CLIENT_SECRET
+const refreshToken = process.env.REFRESH_TOKEN
 
 const OAuth2 = google.auth.OAuth2;
 const oauth2Client = new OAuth2(
@@ -27,7 +27,7 @@ const smtpTransport = nodemailer.createTransport({
     service: "gmail",
     auth: {
         type: "OAuth2",
-        user: "alexkeman9@gmail.com",
+        user: process.env.EMAIL,
         clientId: clientId,
         clientSecret: clientSecret,
         refreshToken: refreshToken,

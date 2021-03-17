@@ -78,7 +78,16 @@ exports.SendEmailReset = async (req, res, next) => {
         })
     }
 
-    const user = await userModel.findOne({
+    let model
+    if (req.body.type === 'A') {
+        model = agencyModel
+    } else if (req.body.type === 'G') {
+        model = guidesModel
+    } else {
+        model = userModel
+    }
+
+    const user = await model.findOne({
         where: {
             email: req.body.email
         }
